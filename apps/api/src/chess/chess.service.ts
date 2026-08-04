@@ -1,6 +1,6 @@
+import type { EndedReason } from "@ax-chess/shared";
 import { Injectable } from "@nestjs/common";
 import { Chess } from "chess.js";
-import type { EndedReason } from "@ax-chess/shared";
 
 /** 규칙에 맞지 않는 수. 실패 사유는 담지 않는다 (FR-204). */
 export class IllegalMoveError extends Error {

@@ -12,13 +12,7 @@ export type Difficulty = "easy" | "normal" | "hard";
 export type GameStatus = "active" | "finished";
 export type GameResult = "win" | "loss" | "draw";
 
-export type EndedReason =
-  | "checkmate"
-  | "stalemate"
-  | "resign"
-  | "fifty_move"
-  | "threefold"
-  | "insufficient_material";
+export type EndedReason = "checkmate" | "stalemate" | "resign" | "fifty_move" | "threefold" | "insufficient_material";
 
 export type MoveClassification = "good" | "inaccuracy" | "mistake" | "blunder";
 

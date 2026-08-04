@@ -1,4 +1,5 @@
 import { Chess } from "chess.js";
+
 import {
   ANALYSIS_TIME_MS,
   DIFFICULTY_ELO,
@@ -84,17 +85,14 @@ describe("EngineService", () => {
         expect(isLegalUci([], move)).toBe(true);
       });
 
-      it.each(["easy", "normal", "hard"] as const)(
-        "%s 난이도에서 합법수를 반환한다",
-        async (difficulty) => {
-          // 난이도별 "수의 강도" 비교는 확률적이라 테스트로 고정하지 않는다.
-          // 여기서는 각 난이도가 엔진을 깨뜨리지 않는지만 본다.
-          const sans = ["e4", "e5"];
-          const move = await service.bestMove(sans, difficulty);
+      it.each(["easy", "normal", "hard"] as const)("%s 난이도에서 합법수를 반환한다", async (difficulty) => {
+        // 난이도별 "수의 강도" 비교는 확률적이라 테스트로 고정하지 않는다.
+        // 여기서는 각 난이도가 엔진을 깨뜨리지 않는지만 본다.
+        const sans = ["e4", "e5"];
+        const move = await service.bestMove(sans, difficulty);
 
-          expect(isLegalUci(sans, move)).toBe(true);
-        },
-      );
+        expect(isLegalUci(sans, move)).toBe(true);
+      });
 
       it("진행 중인 기보를 이어받아 자기 차례의 수를 낸다", async () => {
         const sans = ["e4", "e5", "Nf3"];
@@ -161,10 +159,7 @@ describe("EngineService", () => {
       it("같은 기보를 두 번 분석하면 비슷한 값이 나온다", async () => {
         // 완전 결정론은 아니므로 부호와 대략적 크기만 본다
         const sans = ["e4", "e5", "Qh5", "Nc6", "Qxf7+", "Kxf7"];
-        const [first, second] = await Promise.all([
-          service.evaluate(sans, 200),
-          service.evaluate(sans, 200),
-        ]);
+        const [first, second] = await Promise.all([service.evaluate(sans, 200), service.evaluate(sans, 200)]);
 
         const a = first.at(-1)!.evalCp;
         const b = second.at(-1)!.evalCp;

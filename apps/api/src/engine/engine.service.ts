@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
 import type { Difficulty } from "@ax-chess/shared";
+import { Injectable } from "@nestjs/common";
 
 /** 난이도별 Stockfish UCI_Elo (PRD FR-302). 튜닝은 이 값만 바꾼다. */
 export const DIFFICULTY_ELO: Record<Difficulty, number> = {

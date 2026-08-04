@@ -1,4 +1,5 @@
 import { Chess } from "chess.js";
+
 import { ChessService, IllegalMoveError } from "./chess.service";
 
 /**
