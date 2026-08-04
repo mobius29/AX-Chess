@@ -1,0 +1,25 @@
+{
+  "name": "ax-chess",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:web": "pnpm --filter web dev"
+  },
+  "devDependencies": {
+    "oxfmt": "0.62.0",
+    "oxlint": "1.77.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=11"
+  },
+  "packageManager": "pnpm@11.1.1"
+}
