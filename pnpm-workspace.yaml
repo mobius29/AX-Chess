@@ -3,6 +3,8 @@ packages:
   - 'packages/*'
 
 allowBuilds:
+  # WASM 엔진 바이너리 준비
+  stockfish: true
   # jest-resolve가 쓰는 네이티브 리졸버
   unrs-resolver: true
 
