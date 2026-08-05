@@ -2,7 +2,6 @@ import type { EndedReason } from "@ax-chess/shared";
 import { Injectable } from "@nestjs/common";
 import { Chess } from "chess.js";
 
-/** 규칙에 맞지 않는 수. 실패 사유는 담지 않는다 (FR-204). */
 export class IllegalMoveError extends Error {
   constructor() {
     super("IllegalMove");
@@ -11,33 +10,45 @@ export class IllegalMoveError extends Error {
 }
 
 export interface AppliedMove {
-  /** 정규화된 SAN. 입력이 UCI였어도 SAN으로 반환한다 */
   san: string;
 }
 
 export interface Outcome {
-  /** 무승부면 null */
   winner: "w" | "b" | null;
   reason: EndedReason;
 }
 
 @Injectable()
 export class ChessService {
-  /** 저장된 SAN 목록을 replay해 보드를 재구성한다. 서버 내부 전용. */
-  replay(_sans: string[]): Chess {
-    throw new Error("Not implemented");
+  replay(sans: string[]): Chess {
+    const chess = new Chess();
+    sans.forEach((san) => chess.move(san, { strict: true }));
+
+    return chess;
   }
 
-  /**
-   * 현재 기보에 입력 수를 적용한다.
-   * SAN과 UCI를 모두 받으며, 규칙 위반이면 IllegalMoveError를 던진다.
-   */
-  applyMove(_sans: string[], _input: string): AppliedMove {
-    throw new Error("Not implemented");
+  applyMove(sans: string[], input: string): AppliedMove {
+    const board = this.replay(sans);
+    const normalizedInput = input
+      .trim()
+      .replace(/^[A-H](?=[1-8])/, (file) => file.toLowerCase())
+      .replace(/=[qrbn]/, (promotion) => promotion.toUpperCase());
+
+    try {
+      const move = board.move(normalizedInput);
+      return { san: move.san };
+    } catch {
+      throw new IllegalMoveError();
+    }
   }
 
-  /** 종료 조건을 판정한다. 진행 중이면 null. */
-  getOutcome(_chess: Chess): Outcome | null {
-    throw new Error("Not implemented");
+  getOutcome(chess: Chess): Outcome | null {
+    if (chess.isCheckmate()) return { winner: chess.turn() === "w" ? "b" : "w", reason: "checkmate" };
+    if (chess.isStalemate()) return { winner: null, reason: "stalemate" };
+    if (chess.isThreefoldRepetition()) return { winner: null, reason: "threefold" };
+    if (chess.isDrawByFiftyMoves()) return { winner: null, reason: "fifty_move" };
+    if (chess.isInsufficientMaterial()) return { winner: null, reason: "insufficient_material" };
+
+    return null;
   }
 }
