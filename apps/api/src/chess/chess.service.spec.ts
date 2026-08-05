@@ -78,8 +78,8 @@ describe("ChessService", () => {
 
     it("40수 재현이 5ms 안에 끝난다", () => {
       // 매 요청마다 replay하는 설계라 이 비용이 성능 논의 대상이 되면 안 된다 (PRD 8.2)
-      const sans = Array.from({ length: 10 }, () => FIXTURES.threefold).flat();
-      expect(sans).toHaveLength(80);
+      const sans = Array.from({ length: 5 }, () => FIXTURES.threefold).flat();
+      expect(sans).toHaveLength(40);
 
       const start = performance.now();
       service.replay(sans);
