@@ -2,14 +2,8 @@ import { Chess } from "chess.js";
 
 import { ChessService, IllegalMoveError } from "./chess.service";
 
-/**
- * 모든 픽스처는 chess.js 1.4로 실제 결과를 확인한 뒤 넣었다.
- * 수순을 고칠 때는 기대 결과도 다시 확인할 것.
- */
 const FIXTURES = {
-  /** 1. f3 e5 2. g4 Qh4# */
   foolsMate: ["f3", "e5", "g4", "Qh4#"],
-  /** 백이 흑을 스테일메이트로 몰아넣는 최단 수순 중 하나 */
   stalemate: [
     "e3",
     "a5",
@@ -31,21 +25,14 @@ const FIXTURES = {
     "Kg6",
     "Qe6",
   ],
-  /** 나이트 왕복으로 같은 포지션 3회 */
   threefold: ["Nf3", "Nf6", "Ng1", "Ng8", "Nf3", "Nf6", "Ng1", "Ng8"],
-  /** 백 c7 폰이 승격 직전. c8이 비어 있어 직진 승격이 가능하다 */
   beforePromotion: ["d4", "e5", "dxe5", "d6", "exd6", "Bf5", "dxc7", "Nd7"],
-  /** 흑이 d5로 두 칸 전진한 직후. 백 e5 폰이 앙파상 가능 */
   beforeEnPassant: ["e4", "a6", "e5", "d5"],
-  /** 백이 킹사이드 캐슬링 가능한 상태 */
   beforeCastle: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5"],
 } as const;
 
-/** 킹 대 킹 */
 const FEN_INSUFFICIENT_MATERIAL = "8/8/8/4k3/8/8/4K3/8 w - - 0 1";
-/** halfmove clock 99. 한 수 더 두면 50수 규칙 성립 */
 const FEN_BEFORE_FIFTY_MOVE = "4k3/8/8/8/8/8/4K3/R7 w - - 99 60";
-/** Ra8+로 체크를 걸 수 있고, 흑에게 피할 수가 3개 남는다 */
 const FEN_BEFORE_CHECK = "4k3/8/8/8/8/8/8/R3K3 w - - 0 1";
 
 describe("ChessService", () => {
@@ -140,19 +127,16 @@ describe("ChessService", () => {
       ["소문자 승격 기물", FIXTURES.beforePromotion, "c8=q", "c8=Q"],
       ["앞뒤 공백", [], "  e4  ", "e4"],
     ])("관용 처리: %s", (_label, setup, input, expected) => {
-      // chess.js 1.4는 이 셋을 그대로 거부한다. 서비스가 입력을 정규화해야 한다.
       expect(service.applyMove([...setup], input).san).toBe(expected);
     });
 
     it("불필요하게 붙인 체크 기호를 받아준다", () => {
-      // 이건 chess.js가 이미 관용 처리한다. 정규화 과정에서 깨뜨리지 않는지 확인한다.
       const move = service.applyMove(["e4", "e5", "Bc4", "Nc6"], "Qh5+");
 
       expect(move.san).toBe("Qh5");
     });
 
     it("입력이 UCI여도 SAN으로 정규화해 반환한다", () => {
-      // moves 테이블에는 항상 SAN만 저장한다 (DB 설계서 3.3)
       const move = service.applyMove([], "e2e4");
 
       expect(move.san).toBe("e4");
@@ -246,7 +230,6 @@ describe("ChessService", () => {
     });
 
     it("체크는 종료 사유가 아니다", () => {
-      // 체크 상태는 표시만 하고 게임은 계속된다 (FR-206)
       const chess = new Chess(FEN_BEFORE_CHECK);
       chess.move("Ra8+");
 

@@ -8,13 +8,10 @@ import {
   MOVE_TIME_MS,
 } from "./engine.service";
 
-/** 실제 WASM 엔진을 구동하므로 기본 타임아웃으로는 부족하다 */
 jest.setTimeout(60_000);
 
-/** 5. Qxf7+?? Kxf7 — 백이 퀸을 그냥 버린다 */
 const QUEEN_BLUNDER = ["e4", "e5", "Qh5", "Nc6", "Qxf7+", "Kxf7"];
 
-/** 주어진 기보에서 UCI 문자열이 실제 합법수인지 확인한다 */
 function isLegalUci(sans: string[], uci: string): boolean {
   const chess = new Chess();
   for (const san of sans) chess.move(san);
@@ -44,7 +41,6 @@ describe("EngineService", () => {
     });
 
     it("복기 분석은 40수를 10초 안에 끝낼 수 있는 시간을 쓴다", () => {
-      // PRD 8.2: 복기 분석 40수 기준 10초 이내
       expect(ANALYSIS_TIME_MS * 40).toBeLessThanOrEqual(10_000);
     });
   });
@@ -82,8 +78,6 @@ describe("EngineService", () => {
       });
 
       it.each(["easy", "normal", "hard"] as const)("%s 난이도에서 합법수를 반환한다", async (difficulty) => {
-        // 난이도별 "수의 강도" 비교는 확률적이라 테스트로 고정하지 않는다.
-        // 여기서는 각 난이도가 엔진을 깨뜨리지 않는지만 본다.
         const sans = ["e4", "e5"];
         const move = await runningService.bestMove(sans, difficulty);
 
@@ -94,7 +88,6 @@ describe("EngineService", () => {
         const sans = ["e4", "e5", "Nf3"];
         const move = await runningService.bestMove(sans, "normal");
 
-        // 흑 차례이므로 흑 기물이 움직여야 한다
         const chess = new Chess();
         for (const san of sans) chess.move(san);
         const applied = chess.move(move);
@@ -107,12 +100,10 @@ describe("EngineService", () => {
         await runningService.bestMove([], "normal", 300);
         const elapsed = Date.now() - start;
 
-        // WASM 기동분을 감안해 넉넉히 잡는다. 무한정 생각하지 않는지만 본다.
         expect(elapsed).toBeLessThan(3000);
       });
 
       it("연속 호출해도 정상 동작한다", async () => {
-        // 엔진 인스턴스를 워밍 상태로 재사용하므로 상태가 오염되면 안 된다
         const first = await runningService.bestMove(["e4"], "normal");
         const second = await runningService.bestMove(["e4"], "normal");
 
@@ -144,7 +135,6 @@ describe("EngineService", () => {
       });
 
       it("퀸을 버린 수 뒤에는 평가가 흑 쪽으로 크게 기운다", async () => {
-        // 백 기준 양수 규약이므로, 백이 퀸을 잃으면 음수로 내려가야 한다
         const evaluations = await runningService.evaluate(QUEEN_BLUNDER, 200);
         const afterCapture = evaluations.at(-1);
 
@@ -153,7 +143,6 @@ describe("EngineService", () => {
       });
 
       it("같은 기보를 두 번 분석하면 비슷한 값이 나온다", async () => {
-        // 완전 결정론은 아니므로 부호와 대략적 크기만 본다
         const sans = ["e4", "e5", "Qh5", "Nc6", "Qxf7+", "Kxf7"];
         const [first, second] = await Promise.all([
           runningService.evaluate(sans, 200),
@@ -172,13 +161,11 @@ describe("EngineService", () => {
   describe("dispose", () => {
     it("정리 후에는 다시 쓸 수 없다", async () => {
       await runningService.dispose();
-
       await expect(runningService.bestMove([], "normal")).rejects.toThrow(EngineUnavailableError);
     });
 
     it("초기화하지 않은 인스턴스를 정리해도 실패하지 않는다", async () => {
       const service = new EngineService();
-
       await expect(service.dispose()).resolves.not.toThrow();
     });
   });
