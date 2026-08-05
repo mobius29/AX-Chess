@@ -3,8 +3,6 @@
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    // NestJS는 ESM 문법 소스 → CJS 출력 방식이라 verbatimModuleSyntax와 충돌한다.
-    // shared 패키지는 타입만 담으므로 런타임 import가 남을 위험은 없다.
     "verbatimModuleSyntax": false,
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
