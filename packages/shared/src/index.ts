@@ -88,9 +88,9 @@ export interface ReviewPlyDto {
   ply: number;
   san: string;
   side: Color;
-  fen: string;
+  fen: string; // blindfold-ok: status=finished 게이트 뒤에서만 발급된다
   /** centipawn, 백 기준 양수. 메이트는 ±10000으로 클립 */
-  evalCp: number;
+  evalCp: number; // blindfold-ok: 복기 전용
   classification: MoveClassification;
 }
 
