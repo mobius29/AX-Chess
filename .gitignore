@@ -12,3 +12,5 @@ build/
 *.log
 .claude/reviews/
 .claude/settings.local.json
+
+.pnpm-store/
