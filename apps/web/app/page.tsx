@@ -1,69 +1,94 @@
-import Image from "next/image";
+import { BrandLink, Link } from "@/app/_components/Link";
 
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex w-full max-w-3xl flex-1 flex-col items-center justify-between bg-white px-16 py-32 sm:items-start dark:bg-black">
-        <Image
-          className="h-5 w-[100px] dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl leading-10 font-semibold tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <main className="bg-canvas flex min-h-[100dvh] flex-col overflow-hidden">
+      <header className="mx-auto flex h-20 w-full max-w-[1400px] items-center justify-between px-5 md:px-10">
+        <BrandLink href="/" />
+
+        <nav aria-label="계정 메뉴" className="flex items-center gap-2 sm:gap-3">
+          <Link
+            className="text-body-strong hover:text-primary-active focus-visible:outline-primary rounded-sm px-3 py-2 text-[14px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+            href="/login"
+          >
+            로그인
+          </Link>
+          <Link className="h-auto px-4 py-2.5 text-[14px]" href="/sign-up" variant="primary">
+            회원가입
+          </Link>
+        </nav>
+      </header>
+
+      <section className="mx-auto grid w-full max-w-[1400px] flex-1 items-center gap-14 px-5 py-12 md:px-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20 lg:py-16">
+        <div className="max-w-[620px]">
+          <p className="text-caption-3 text-primary-active mb-5 uppercase">Blindfold chess</p>
+          <h1 className="text-ink text-[clamp(2.75rem,6vw,5.5rem)] leading-[1.02] font-semibold tracking-[-0.07em]">
+            보지 않아도,
+            <span className="text-primary-active block">수는 선명하게.</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-body-1 text-body mt-7 max-w-[480px]">
+            머릿속 체스판을 그리며 두세요. AI와 한 수씩 주고받으며 블라인드 체스를 연습할 수 있습니다.
           </p>
+
+          <div className="mt-9 flex flex-wrap gap-3">
+            <Link href="/sign-up" variant="primary">
+              무료로 시작하기
+            </Link>
+            <Link href="/login" variant="secondary">
+              로그인
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="bg-foreground text-background flex h-12 w-full items-center justify-center gap-2 rounded-full px-5 transition-colors hover:bg-[#383838] md:w-[158px] dark:hover:bg-[#ccc]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <figure className="relative mx-auto w-full max-w-[640px] lg:mr-0">
+          <div
+            className="bg-surface-card absolute -inset-5 translate-x-6 translate-y-6 rounded-lg"
+            aria-hidden="true"
+          />
+          <div
+            aria-label="블라인드 체스 연습을 위한 체스판"
+            className="border-hairline relative aspect-square w-full overflow-hidden rounded-lg border shadow-[0_28px_80px_rgb(20_20_19_/_0.16)]"
+            role="img"
+            style={{
+              backgroundColor: "var(--sq-light)",
+              backgroundImage:
+                "conic-gradient(from 90deg, var(--sq-dark) 25%, var(--sq-light) 0 50%, var(--sq-dark) 0 75%, var(--sq-light) 0)",
+              backgroundSize: "25% 25%",
+            }}
           >
-            <Image
-              className="h-[14px] w-4 dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] md:w-[158px] dark:border-white/[.145] dark:hover:bg-[#1a1a1a]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 grid grid-cols-8 grid-rows-8"
+              style={{
+                fontFamily:
+                  '"Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif',
+              }}
+            >
+              <span className="text-surface-dark col-start-1 row-start-1 grid place-items-center text-[clamp(2rem,6vw,4.5rem)] leading-none">
+                ♜
+              </span>
+              <span className="text-surface-dark col-start-3 row-start-2 grid place-items-center text-[clamp(2rem,6vw,4.5rem)] leading-none">
+                ♞
+              </span>
+              <span className="text-surface-dark col-start-5 row-start-4 grid place-items-center text-[clamp(2rem,6vw,4.5rem)] leading-none">
+                ♛
+              </span>
+              <span className="col-start-4 row-start-5 grid place-items-center text-[clamp(2rem,6vw,4.5rem)] leading-none text-[#faf9f5] drop-shadow-[0_1px_1px_rgb(20_20_19_/_0.45)]">
+                ♙
+              </span>
+              <span className="col-start-6 row-start-7 grid place-items-center text-[clamp(2rem,6vw,4.5rem)] leading-none text-[#faf9f5] drop-shadow-[0_1px_1px_rgb(20_20_19_/_0.45)]">
+                ♘
+              </span>
+              <span className="col-start-7 row-start-8 grid place-items-center text-[clamp(2rem,6vw,4.5rem)] leading-none text-[#faf9f5] drop-shadow-[0_1px_1px_rgb(20_20_19_/_0.45)]">
+                ♔
+              </span>
+            </div>
+          </div>
+          <figcaption className="text-caption-1 text-muted relative mt-5 max-w-[420px] pl-px">
+            보드 없이 기보만 따라가며 공간 기억과 수읽기를 함께 훈련합니다.
+          </figcaption>
+        </figure>
+      </section>
+    </main>
   );
 }
