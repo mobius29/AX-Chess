@@ -137,3 +137,12 @@ export interface ApiError {
   code: ApiErrorCode;
   message: string;
 }
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface SignUpRequest extends LoginRequest {
+  nickname: string;
+}
