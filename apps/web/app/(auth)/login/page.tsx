@@ -17,22 +17,19 @@ const LoginPage = () => {
   const queryClient = useQueryClient();
 
   const login = useMutation({
-    mutationFn: (request: LoginRequest) => apiRequest("post", "auth/login", { json: request }),
+    mutationFn: (req: LoginRequest) => apiRequest("post", "auth/login", { json: req }),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: currentUserQueryKey });
       router.replace("/");
     },
   });
 
-  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (login.isPending) return;
 
-    const formData = new FormData(event.currentTarget);
-    login.mutate({
-      email: String(formData.get("email")),
-      password: String(formData.get("password")),
-    });
+    const values = Object.fromEntries(new FormData(e.currentTarget)) as unknown as LoginRequest;
+    login.mutate(values);
   };
 
   return (

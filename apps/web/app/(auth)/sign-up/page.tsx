@@ -18,16 +18,12 @@ const SignUpPage = () => {
     onSuccess: () => router.replace("/login"),
   });
 
-  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (signUp.isPending) return;
 
-    const formData = new FormData(event.currentTarget);
-    signUp.mutate({
-      email: String(formData.get("email")),
-      nickname: String(formData.get("nickname")),
-      password: String(formData.get("password")),
-    });
+    const values = Object.fromEntries(new FormData(e.currentTarget)) as unknown as SignUpRequest;
+    signUp.mutate(values);
   };
 
   return (
