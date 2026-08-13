@@ -38,19 +38,15 @@ const captionClasses: Record<CaptionLevel, string> = {
   3: "text-caption-3 uppercase",
 };
 
-export function Title({ children, className, level = 3 }: TextProps & { level?: TitleLevel }) {
+export const Title = ({ children, className, level = 3 }: TextProps & { level?: TitleLevel }) => {
   const Heading = titleTags[level];
   return <Heading className={clsx(titleClasses[level], className)}>{children}</Heading>;
-}
+};
 
-export function Body({ children, className, level = 2 }: TextProps & { level?: BodyLevel }) {
+export const Body = ({ children, className, level = 2 }: TextProps & { level?: BodyLevel }) => {
   return <p className={clsx(bodyClasses[level], className)}>{children}</p>;
-}
+};
 
-export function Caption({ children, className, level = 1 }: TextProps & { level?: CaptionLevel }) {
+export const Caption = ({ children, className, level = 1 }: TextProps & { level?: CaptionLevel }) => {
   return <p className={clsx(captionClasses[level], className)}>{children}</p>;
-}
-
-const Typography = { Title, Body, Caption };
-
-export default Typography;
+};

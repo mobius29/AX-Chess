@@ -1,6 +1,6 @@
 import { BrandLink, Link } from "@/app/_components/Link";
 
-export default function Home() {
+const Home = () => {
   return (
     <main className="bg-canvas flex min-h-[100dvh] flex-col overflow-hidden">
       <header className="mx-auto flex h-20 w-full max-w-[1400px] items-center justify-between px-5 md:px-10">
@@ -60,8 +60,7 @@ export default function Home() {
               aria-hidden="true"
               className="absolute inset-0 grid grid-cols-8 grid-rows-8"
               style={{
-                fontFamily:
-                  '"Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif',
+                fontFamily: '"Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif',
               }}
             >
               <span className="text-surface-dark col-start-1 row-start-1 grid place-items-center text-[clamp(2rem,6vw,4.5rem)] leading-none">
@@ -91,4 +90,6 @@ export default function Home() {
       </section>
     </main>
   );
-}
+};
+
+export default Home;

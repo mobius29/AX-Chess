@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Blindfold Chess with AI",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+const RootLayout = ({ children }: LayoutProps<"/">) => {
   return (
     <html lang="ko" className={`${pretendard.className} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
@@ -17,4 +17,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;
