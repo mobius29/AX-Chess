@@ -6,11 +6,11 @@ const AUTH_COOKIE = "accessToken";
 
 type Context = { params: Promise<{ proxy: string[] }> };
 
-export const POST = async (request: Request, { params }: Context) => {
+const proxyRequest = async (request: Request, { params }: Context) => {
   const { proxy } = await params;
   const path = proxy.map(encodeURIComponent).join("/");
 
-  if (path === "auth/logout") {
+  if (request.method === "POST" && path === "auth/logout") {
     const response = new NextResponse(null, { status: 204 });
     response.cookies.delete(AUTH_COOKIE);
     return response;
@@ -19,13 +19,13 @@ export const POST = async (request: Request, { params }: Context) => {
   const cookieStore = await cookies();
   const token = cookieStore.get(AUTH_COOKIE)?.value;
   const upstream = await fetch(`${API_URL.replace(/\/$/, "")}/${path}`, {
-    body: await request.text(),
+    body: request.method === "GET" ? undefined : await request.text(),
     cache: "no-store",
     headers: {
       "content-type": request.headers.get("content-type") ?? "application/json",
       ...(token && { authorization: `Bearer ${token}` }),
     },
-    method: "POST",
+    method: request.method,
   });
 
   if (path !== "auth/login" || !upstream.ok) {
@@ -51,3 +51,6 @@ export const POST = async (request: Request, { params }: Context) => {
   });
   return response;
 };
+
+export const GET = proxyRequest;
+export const POST = proxyRequest;

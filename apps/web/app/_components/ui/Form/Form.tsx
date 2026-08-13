@@ -8,18 +8,9 @@ type FormFieldProps = Omit<ComponentProps<"input">, "name"> & {
   name: string;
 };
 
-const Form = ({ className, ...props }: FormProps) => (
-  <form className={clsx("space-y-5", className)} {...props} />
-);
+const Form = ({ className, ...props }: FormProps) => <form className={clsx("space-y-5", className)} {...props} />;
 
-export const FormField = ({
-  className,
-  hint,
-  id,
-  label,
-  name,
-  ...props
-}: FormFieldProps) => {
+export const FormField = ({ className, hint, id, label, name, ...props }: FormFieldProps) => {
   const inputId = id ?? name;
   const hintId = hint ? `${inputId}-hint` : undefined;
 

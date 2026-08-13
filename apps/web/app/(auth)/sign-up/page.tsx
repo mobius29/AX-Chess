@@ -5,10 +5,10 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
 
-import { Button } from "@/app/_components/Button";
-import { Form, FormField } from "@/app/_components/Form";
-import { BrandLink, Link } from "@/app/_components/Link";
-import { Body, Title } from "@/app/_components/Typography";
+import { Button } from "@/app/_components/ui/Button";
+import { Form, FormField } from "@/app/_components/ui/Form";
+import { BrandLink, Link } from "@/app/_components/ui/Link";
+import { Body, Title } from "@/app/_components/ui/Typography";
 import { apiRequest } from "@/app/_lib/api";
 
 const SignUpPage = () => {

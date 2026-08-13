@@ -16,14 +16,10 @@ const variants: Record<LinkVariant, string> = {
   text: "text-primary hover:text-primary-active font-semibold transition-colors",
 };
 
-const focusClasses =
-  "focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2";
+const focusClasses = "focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2";
 
 const Link = ({ className, variant, ...props }: LinkProps) => (
-  <NextLink
-    className={clsx(focusClasses, variant && variants[variant], className)}
-    {...props}
-  />
+  <NextLink className={clsx(focusClasses, variant && variants[variant], className)} {...props} />
 );
 
 export const BrandLink = ({ className, children = "AX Chess", ...props }: LinkProps) => (

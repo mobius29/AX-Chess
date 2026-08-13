@@ -1,22 +1,27 @@
 "use client";
 
 import type { LoginRequest } from "@ax-chess/shared";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
 
-import { Button } from "@/app/_components/Button";
-import { Form, FormField } from "@/app/_components/Form";
-import { BrandLink, Link } from "@/app/_components/Link";
-import { Body, Title } from "@/app/_components/Typography";
+import { Button } from "@/app/_components/ui/Button";
+import { Form, FormField } from "@/app/_components/ui/Form";
+import { BrandLink, Link } from "@/app/_components/ui/Link";
+import { Body, Title } from "@/app/_components/ui/Typography";
 import { apiRequest } from "@/app/_lib/api";
+import { currentUserQueryKey } from "@/app/_lib/auth";
 
 const LoginPage = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const login = useMutation({
     mutationFn: (request: LoginRequest) => apiRequest("post", "auth/login", { json: request }),
-    onSuccess: () => router.replace("/"),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: currentUserQueryKey });
+      router.replace("/");
+    },
   });
 
   const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {

@@ -1,23 +1,10 @@
-import { BrandLink, Link } from "@/app/_components/Link";
+import { Header } from "@/app/_components/layout/Header";
+import { Link } from "@/app/_components/ui/Link";
 
 const Home = () => {
   return (
     <main className="bg-canvas flex min-h-[100dvh] flex-col overflow-hidden">
-      <header className="mx-auto flex h-20 w-full max-w-[1400px] items-center justify-between px-5 md:px-10">
-        <BrandLink href="/" />
-
-        <nav aria-label="계정 메뉴" className="flex items-center gap-2 sm:gap-3">
-          <Link
-            className="text-body-strong hover:text-primary-active focus-visible:outline-primary rounded-sm px-3 py-2 text-[14px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-            href="/login"
-          >
-            로그인
-          </Link>
-          <Link className="h-auto px-4 py-2.5 text-[14px]" href="/sign-up" variant="primary">
-            회원가입
-          </Link>
-        </nav>
-      </header>
+      <Header />
 
       <section className="mx-auto grid w-full max-w-[1400px] flex-1 items-center gap-14 px-5 py-12 md:px-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20 lg:py-16">
         <div className="max-w-[620px]">
