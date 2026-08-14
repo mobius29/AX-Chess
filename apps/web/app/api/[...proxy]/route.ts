@@ -47,7 +47,7 @@ const proxyRequest = async (request: Request, { params }: Context) => {
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
     sameSite: "lax",
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
   });
   return response;
 };
