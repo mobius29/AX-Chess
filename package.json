@@ -10,6 +10,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "build": "pnpm -r --if-present build",
     "dev:api": "pnpm --filter api start:dev",
+    "dev:all": "docker compose up --build",
     "dev:web": "pnpm --filter web dev"
   },
   "devDependencies": {
