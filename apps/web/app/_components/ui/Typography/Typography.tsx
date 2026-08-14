@@ -1,13 +1,18 @@
 import clsx from "clsx";
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
 
 type TitleLevel = 1 | 2 | 3 | 4 | 5;
 type BodyLevel = 1 | 2 | 3;
 type CaptionLevel = 1 | 2 | 3;
+type TextTone = "error" | "ink" | "muted";
 
-type TextProps = {
-  children: ReactNode;
-  className?: string;
+type TitleProps = ComponentProps<"h1"> & {
+  level?: TitleLevel;
+  tone?: TextTone;
+};
+
+type ParagraphProps = ComponentProps<"p"> & {
+  tone?: TextTone;
 };
 
 const titleClasses: Record<TitleLevel, string> = {
@@ -38,15 +43,21 @@ const captionClasses: Record<CaptionLevel, string> = {
   3: "text-caption-3 uppercase",
 };
 
-export const Title = ({ children, className, level = 3 }: TextProps & { level?: TitleLevel }) => {
+const tones: Record<TextTone, string> = {
+  error: "text-error",
+  ink: "text-ink",
+  muted: "text-muted",
+};
+
+export const Title = ({ className, level = 3, tone, ...props }: TitleProps) => {
   const Heading = titleTags[level];
-  return <Heading className={clsx(titleClasses[level], className)}>{children}</Heading>;
+  return <Heading className={clsx(titleClasses[level], tone && tones[tone], className)} {...props} />;
 };
 
-export const Body = ({ children, className, level = 2 }: TextProps & { level?: BodyLevel }) => {
-  return <p className={clsx(bodyClasses[level], className)}>{children}</p>;
-};
+export const Body = ({ className, level = 2, tone, ...props }: ParagraphProps & { level?: BodyLevel }) => (
+  <p className={clsx(bodyClasses[level], tone && tones[tone], className)} {...props} />
+);
 
-export const Caption = ({ children, className, level = 1 }: TextProps & { level?: CaptionLevel }) => {
-  return <p className={clsx(captionClasses[level], className)}>{children}</p>;
-};
+export const Caption = ({ className, level = 1, tone, ...props }: ParagraphProps & { level?: CaptionLevel }) => (
+  <p className={clsx(captionClasses[level], tone && tones[tone], className)} {...props} />
+);

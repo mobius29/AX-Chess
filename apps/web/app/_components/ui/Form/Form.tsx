@@ -20,7 +20,9 @@ export const FormField = ({ className, hint, id, label, name, ...props }: FormFi
       <input
         aria-describedby={hintId}
         className={clsx(
-          "border-hairline bg-canvas text-ink placeholder:text-muted-soft focus:border-primary mt-2 h-10 w-full rounded-sm border px-3.5 text-base leading-[1.2] outline-none focus:shadow-[0_0_0_3px_rgb(204_120_92_/_0.15)]",
+          "mt-2 h-10 w-full rounded-sm border px-3.5 text-base leading-[1.2]",
+          "border-hairline bg-canvas text-ink placeholder:text-muted-soft",
+          "outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgb(204_120_92_/_0.15)]",
           className,
         )}
         id={inputId}

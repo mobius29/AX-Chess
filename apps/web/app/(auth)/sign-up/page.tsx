@@ -8,7 +8,7 @@ import type { SubmitEvent } from "react";
 import { Button } from "@/app/_components/ui/Button";
 import { Form, FormField } from "@/app/_components/ui/Form";
 import { BrandLink, Link } from "@/app/_components/ui/Link";
-import { Body, Title } from "@/app/_components/ui/Typography";
+import { Body, Caption, Title } from "@/app/_components/ui/Typography";
 import { apiRequest } from "@/app/_lib/api";
 
 const SignUpPage = () => {
@@ -31,10 +31,10 @@ const SignUpPage = () => {
       <BrandLink className="mb-12" href="/" />
 
       <header className="mb-8 flex flex-col gap-3">
-        <Title level={3} className="text-ink">
+        <Title level={3} tone="ink">
           한 판부터 시작해 보세요
         </Title>
-        <Body level={3} className="text-muted">
+        <Body level={3} tone="muted">
           이메일과 닉네임만 정하면 바로 둘 수 있습니다.
         </Body>
       </header>
@@ -67,21 +67,21 @@ const SignUpPage = () => {
           type="password"
         />
         {signUp.error && (
-          <p className="text-error text-caption-1" role="alert">
+          <Caption role="alert" tone="error">
             {signUp.error.message}
-          </p>
+          </Caption>
         )}
         <Button disabled={signUp.isPending} type="submit">
           {signUp.isPending ? "가입 중..." : "회원가입"}
         </Button>
       </Form>
 
-      <p className="text-caption-1 text-muted mt-6 text-center">
+      <Caption className="mt-6 text-center" tone="muted">
         이미 계정이 있나요?{" "}
         <Link href="/login" variant="text">
           로그인
         </Link>
-      </p>
+      </Caption>
     </section>
   );
 };
