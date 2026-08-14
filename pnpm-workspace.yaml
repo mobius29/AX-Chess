@@ -4,6 +4,10 @@ packages:
 
 allowBuilds:
   # WASM 엔진 바이너리 준비
+  "@prisma/engines": true
+  '@scarf/scarf': true
+  argon2: true
+  prisma: true
   stockfish: true
   # jest-resolve가 쓰는 네이티브 리졸버
   unrs-resolver: true

@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Color {
+  white
+  black
+}
+
+enum Difficulty {
+  easy
+  normal
+  hard
+}
+
+enum GameStatus {
+  active
+  finished
+}
+
+enum GameResult {
+  win
+  loss
+  draw
+}
+
+enum EndedReason {
+  checkmate
+  stalemate
+  resign
+  fifty_move
+  threefold
+  insufficient_material
+}
+
+enum MoveClassification {
+  good
+  inaccuracy
+  mistake
+  blunder
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  nickname     String   @unique @db.VarChar(16)
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  games Game[]
+
+  @@map("users")
+}
+
+model Game {
+  id           String       @id @default(cuid())
+  userId       String       @map("user_id")
+  color        Color
+  difficulty   Difficulty
+  status       GameStatus   @default(active)
+  result       GameResult?
+  endedReason  EndedReason? @map("ended_reason")
+  moveCount    Int          @default(0) @map("move_count")
+  illegalCount Int          @default(0) @map("illegal_count")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  endedAt      DateTime?    @map("ended_at")
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moves    Move[]
+  analysis GameAnalysis[]
+
+  @@index([userId, status])
+  @@index([userId, endedAt(sort: Desc)])
+  @@map("games")
+}
+
+model Move {
+  id        String   @id @default(cuid())
+  gameId    String   @map("game_id")
+  ply       Int
+  san       String   @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, ply])
+  @@map("moves")
+}
+
+model GameAnalysis {
+  id             String             @id @default(cuid())
+  gameId         String             @map("game_id")
+  ply            Int
+  evalCp         Int                @map("eval_cp")
+  classification MoveClassification
+  analyzedAt     DateTime           @default(now()) @map("analyzed_at")
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, ply])
+  @@map("game_analysis")
+}

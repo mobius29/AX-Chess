@@ -1,26 +1,132 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #cc785c;
+  --primary-active: #a9583e;
+  --primary-disabled: #e6dfd8;
+  --accent-teal: #5db8a6;
+  --accent-amber: #e8a55a;
+  --success: #5db872;
+  --warning: #d4a017;
+  --error: #c64545;
+
+  --canvas: #faf9f5;
+  --surface-soft: #f5f0e8;
+  --surface-card: #efe9de;
+  --surface-cream-strong: #e8e0d2;
+  --surface-dark: #181715;
+  --surface-dark-elevated: #252320;
+  --ink: #141413;
+  --body: #3d3d3a;
+  --body-strong: #252523;
+  --muted: #6c6a64;
+  --muted-soft: #8e8b82;
+  --sq-light: #e8e0d2;
+  --sq-dark: #b3a189;
+  --hairline: #e6dfd8;
+  --hairline-soft: #ebe6df;
+
+  --background: var(--canvas);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-primary: var(--primary);
+  --color-primary-active: var(--primary-active);
+  --color-primary-disabled: var(--primary-disabled);
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-amber: var(--accent-amber);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-canvas: var(--canvas);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-card: var(--surface-card);
+  --color-surface-cream-strong: var(--surface-cream-strong);
+  --color-surface-dark: var(--surface-dark);
+  --color-surface-dark-elevated: var(--surface-dark-elevated);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-body-strong: var(--body-strong);
+  --color-muted: var(--muted);
+  --color-muted-soft: var(--muted-soft);
+  --color-sq-light: var(--sq-light);
+  --color-sq-dark: var(--sq-dark);
+  --color-hairline: var(--hairline);
+  --color-hairline-soft: var(--hairline-soft);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Title 1–5 */
+  --text-title-1: 3.75rem;
+  --text-title-1--line-height: 1.12;
+  --text-title-1--letter-spacing: -0.125rem;
+  --text-title-1--font-weight: 700;
+  --text-title-2: 2.125rem;
+  --text-title-2--line-height: 1.25;
+  --text-title-2--letter-spacing: -0.0625rem;
+  --text-title-2--font-weight: 600;
+  --text-title-3: 1.625rem;
+  --text-title-3--line-height: 1.3;
+  --text-title-3--letter-spacing: -0.0375rem;
+  --text-title-3--font-weight: 600;
+  --text-title-4: 1.3125rem;
+  --text-title-4--line-height: 1.35;
+  --text-title-4--letter-spacing: -0.01875rem;
+  --text-title-4--font-weight: 600;
+  --text-title-5: 1rem;
+  --text-title-5--line-height: 1.4;
+  --text-title-5--font-weight: 500;
+
+  /* Body 1–3 */
+  --text-body-1: 1.125rem;
+  --text-body-1--line-height: 1.6;
+  --text-body-1--font-weight: 400;
+  --text-body-2: 1rem;
+  --text-body-2--line-height: 1.6;
+  --text-body-2--font-weight: 400;
+  --text-body-3: 0.875rem;
+  --text-body-3--line-height: 1.6;
+  --text-body-3--font-weight: 400;
+
+  /* Caption 1–3 (3 = uppercase eyebrow) */
+  --text-caption-1: 0.8125rem;
+  --text-caption-1--line-height: 1.4;
+  --text-caption-1--font-weight: 500;
+  --text-caption-2: 0.75rem;
+  --text-caption-2--line-height: 1.4;
+  --text-caption-2--font-weight: 500;
+  --text-caption-3: 0.6875rem;
+  --text-caption-3--line-height: 1.4;
+  --text-caption-3--letter-spacing: 0.09375rem;
+  --text-caption-3--font-weight: 600;
+
+  --text-notation: 0.875rem;
+  --text-notation--line-height: 1.6;
+  --text-notation--font-weight: 400;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-lg: 0.75rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #181715;
+    --surface-soft: #252320;
+    --surface-card: #302d29;
+    --surface-cream-strong: #3c3832;
+    --ink: #f4f0e8;
+    --body: #d7d1c8;
+    --body-strong: #ece7de;
+    --muted: #aaa399;
+    --muted-soft: #888177;
+    --hairline: #403c36;
+    --hairline-soft: #34312c;
+  }
 }
