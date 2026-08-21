@@ -5,8 +5,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
-import { ChessService } from "./chess/chess.service";
-import { EngineService } from "./engine/engine.service";
+import { GamesModule } from "./games/games.module";
 
 @Module({
   imports: [
@@ -17,8 +16,9 @@ import { EngineService } from "./engine/engine.service";
       inject: [ConfigService],
     }),
     AuthModule,
+    GamesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ChessService, EngineService],
+  providers: [AppService],
 })
 export class AppModule {}

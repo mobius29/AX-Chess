@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from "@nestjs/common";
 
 import { CurrentUser } from "./auth.decorator";
+import type { JwtPayload } from "./auth.decorator";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { SignInRequestDTO } from "./dtos/login.dto";
@@ -13,8 +14,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   @Get("me")
-  // TODO: Request type should be inferred
-  async getMe(@CurrentUser() user: { sub: string }) {
+  async getMe(@CurrentUser() user: JwtPayload) {
     return this.authService.getCurrentUser(user.sub);
   }
 

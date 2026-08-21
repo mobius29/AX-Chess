@@ -53,10 +53,21 @@ export interface SubmitMoveRequest {
 }
 
 export interface SubmitMoveResponse extends GameStateDto {
-  /** 정규화되어 저장된 사용자의 수 */
-  accepted: string;
+  /** 정규화되어 저장된 사용자의 수. AI 선턴 복구 재시도처럼 앞선 사용자 수가 없으면 null */
+  accepted: string | null;
   /** 게임이 사용자의 수로 끝났으면 null */
   aiMove: string | null;
+}
+
+/** POST /games/:id/resign */
+export interface ResignResponse {
+  id: string;
+  status: GameStatus;
+  result: GameResult;
+  endedReason: EndedReason;
+  moveCount: number;
+  illegalCount: number;
+  endedAt: string;
 }
 
 /** 기록 목록의 한 항목 */
