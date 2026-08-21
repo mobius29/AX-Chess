@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from "@nestjs/common";
 
-import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/auth.decorator";
 import type { JwtPayload } from "../auth/auth.decorator";
+import { AuthGuard } from "../auth/auth.guard";
 import { CreateGameRequestDTO } from "./dtos/create-game.dto";
 import { SubmitMoveRequestDTO } from "./dtos/submit-move.dto";
 import { GamesService } from "./games.service";

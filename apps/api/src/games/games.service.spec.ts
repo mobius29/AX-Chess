@@ -1,8 +1,8 @@
 import { Test } from "@nestjs/testing";
 
+import { Prisma } from "../../generated/prisma/client";
 import { ChessService } from "../chess/chess.service";
 import { EngineService, EngineUnavailableError } from "../engine/engine.service";
-import { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../prisma.service";
 import {
   ActiveGameExistsException,

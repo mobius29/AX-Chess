@@ -33,10 +33,7 @@ export class GamesService {
   ) {}
 
   private async findOwnedGame(userId: string, gameId: string) {
-    const game = await this.prisma.game.findUnique({
-      where: { id: gameId },
-      include: { moves: MOVES_ORDER_BY_PLY },
-    });
+    const game = await this.prisma.game.findUnique({ where: { id: gameId }, include: { moves: MOVES_ORDER_BY_PLY } });
     if (!game) throw new GameNotFoundException();
     if (game.userId !== userId) throw new GameForbiddenException();
 
@@ -47,12 +44,18 @@ export class GamesService {
     board: Chess;
     state: ReturnType<typeof toGameStateDto>;
   } {
-    const sans = game.moves.map((move) => move.san);
+    const sans = game.moves.map(({ san }) => san);
     const board = this.chess.replay(sans);
-    const turn: Color | null = game.status === "finished" ? null : board.turn() === "w" ? "white" : "black";
-    const inCheck = game.status === "active" && board.inCheck();
 
-    return { board, state: toGameStateDto({ game, moves: sans, turn, inCheck }) };
+    return {
+      board,
+      state: toGameStateDto({
+        game,
+        moves: sans,
+        turn: game.status === "finished" ? null : board.turn() === "w" ? "white" : "black",
+        inCheck: game.status === "active" && board.inCheck(),
+      }),
+    };
   }
 
   private async finishGame(gameId: string, humanColor: Color, outcome: Outcome, moveCount: number) {
@@ -89,7 +92,6 @@ export class GamesService {
     const outcome = this.chess.getOutcome(boardAfterAi);
 
     await this.prisma.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
-
     if (outcome) {
       const state = await this.finishGame(gameId, humanColor, outcome, nextPly);
       return { state, aiMove: applied.san };
@@ -121,7 +123,6 @@ export class GamesService {
       const { state } = await this.playAiMove(game.id, resolvedColor, difficulty, [], 0);
       return state;
     }
-
     return this.deriveState({ ...game, moves: [] }).state;
   }
 
