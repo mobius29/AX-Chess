@@ -20,6 +20,15 @@ const AuthNav = () => {
 
   return user ? (
     <>
+      <Link
+        className={clsx(
+          "rounded-sm px-3 py-2 text-[14px] font-semibold transition-colors",
+          "text-body-strong hover:text-primary-active",
+        )}
+        href="/games/new"
+      >
+        새 게임
+      </Link>
       <span className="text-body-strong text-[14px] font-semibold">{user.nickname}</span>
       <Button
         disabled={logoutMutation.isPending}

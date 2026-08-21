@@ -1,7 +1,21 @@
+import { cookies } from "next/headers";
+
+import { Dashboard } from "@/app/_components/home";
 import { Header } from "@/app/_components/layout/Header";
 import { Link } from "@/app/_components/ui/Link";
 
-const Home = () => {
+const Home = async () => {
+  const isLoggedIn = (await cookies()).has("accessToken");
+
+  if (isLoggedIn) {
+    return (
+      <main className="bg-canvas flex min-h-[100dvh] flex-col overflow-hidden">
+        <Header />
+        <Dashboard />
+      </main>
+    );
+  }
+
   return (
     <main className="bg-canvas flex min-h-[100dvh] flex-col overflow-hidden">
       <Header />
