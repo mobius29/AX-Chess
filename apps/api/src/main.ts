@@ -4,11 +4,13 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./http-exception.filter";
+import { requestLogger } from "./request-logger.middleware";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableShutdownHooks();
+  app.use(requestLogger);
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalFilters(new HttpExceptionFilter());
 
