@@ -40,6 +40,11 @@ export interface GameStateDto {
   endedAt: string | null;
 }
 
+/** GET /games/active */
+export interface ActiveGameResponse {
+  activeGame: GameStateDto | null;
+}
+
 /** POST /games */
 export interface CreateGameRequest {
   color: ColorChoice;

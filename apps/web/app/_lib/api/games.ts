@@ -1,4 +1,10 @@
-import type { CreateGameRequest, GameStateDto, ResignResponse, SubmitMoveResponse } from "@ax-chess/shared";
+import type {
+  ActiveGameResponse,
+  CreateGameRequest,
+  GameStateDto,
+  ResignResponse,
+  SubmitMoveResponse,
+} from "@ax-chess/shared";
 
 import { apiRequest } from "./apiClient";
 
@@ -7,7 +13,8 @@ export const gameQueryKey = (id: string) => ["game", id] as const;
 
 export const getActiveGame = async () => {
   const response = await apiRequest("get", "games/active");
-  return response.json<GameStateDto | null>();
+  const { activeGame } = await response.json<ActiveGameResponse>();
+  return activeGame;
 };
 
 export const getGame = async (id: string) => {

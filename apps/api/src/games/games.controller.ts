@@ -1,3 +1,4 @@
+import type { ActiveGameResponse } from "@ax-chess/shared";
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from "@nestjs/common";
 
 import { CurrentUser } from "../auth/auth.decorator";
@@ -20,8 +21,8 @@ export class GamesController {
 
   @HttpCode(HttpStatus.OK)
   @Get("active")
-  getActiveGame(@CurrentUser() user: JwtPayload) {
-    return this.gamesService.getActiveGame(user.sub);
+  async getActiveGame(@CurrentUser() user: JwtPayload): Promise<ActiveGameResponse> {
+    return { activeGame: await this.gamesService.getActiveGame(user.sub) };
   }
 
   @HttpCode(HttpStatus.OK)

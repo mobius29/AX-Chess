@@ -89,6 +89,8 @@ packages/shared/src/   FE/BE API contract. **Types only**
 
 Successful responses return the resource object directly, with no wrapper. Failures return exactly two fields, `{ code, message }` — never add helpers like `details`, `hint`, or `legalMoves`. `code` must be a member of the `ApiErrorCode` union in `packages/shared`.
 
+**One exception — `GET /games/active`.** Its body can legitimately be `null` (no active game), and Nest/Express sends a raw `null` return as a truly empty body, not JSON `null`, which breaks client-side parsing. It alone replies `{ activeGame: GameStateDto | null }`. Do not extend this wrapper to any other endpoint — if a future endpoint hits the same nullable-body problem, give it its own named wrapper type, don't generalize a shared envelope.
+
 | Situation | Response |
 |---|---|
 | New game while one is active | `409 ACTIVE_GAME_EXISTS` |
