@@ -10,6 +10,7 @@ import {
   GameAlreadyFinishedException,
   GameForbiddenException,
   IllegalMoveException,
+  NotAiTurnException,
   NotYourTurnException,
 } from "./games.errors";
 import { GamesService } from "./games.service";
@@ -34,7 +35,7 @@ function createFakeGame(overrides: Partial<{ color: "white" | "black"; moves: st
     moves: (overrides.moves ?? []).map((san, index) => ({ san, ply: index + 1 })),
   };
 
-  const prisma = {
+  const prisma = withTransaction({
     game: {
       create: jest.fn().mockResolvedValue(state),
       findUnique: jest.fn().mockResolvedValue(state),
@@ -57,9 +58,13 @@ function createFakeGame(overrides: Partial<{ color: "white" | "black"; moves: st
         return Promise.resolve(args.data);
       }),
     },
-  };
+  });
 
   return { state, prisma };
+}
+
+function withTransaction<T extends object>(client: T): T & { $transaction: jest.Mock } {
+  return Object.assign(client, { $transaction: jest.fn((callback: (tx: T) => unknown) => callback(client)) });
 }
 
 describe("GamesService", () => {
@@ -148,6 +153,36 @@ describe("GamesService", () => {
 
     await expect(service.submitMove("u1", "g1", "e4")).rejects.toThrow(EngineUnavailableException);
     expect(state.moves.map((m) => m.san)).toEqual(["e4"]);
+  });
+
+  it("createGame(흑)에서 엔진이 실패하면 게임 row 자체를 만들지 않는다 (고아 방지)", async () => {
+    const { prisma } = createFakeGame();
+    const engine = { bestMove: jest.fn().mockRejectedValue(new EngineUnavailableError()) };
+    const service = await buildService(prisma, engine);
+
+    await expect(service.createGame("u1", "black", "normal")).rejects.toThrow(EngineUnavailableException);
+    expect(prisma.game.create).not.toHaveBeenCalled();
+  });
+
+  it("retryAiMove는 AI가 이미 응수했으면 엔진을 다시 안 부르고 그 결과를 그대로 재반환한다 (멱등)", async () => {
+    const { prisma } = createFakeGame({ color: "white", moves: ["e4", "e5"] });
+    const engine = { bestMove: jest.fn() };
+    const service = await buildService(prisma, engine);
+
+    const result = await service.retryAiMove("u1", "g1");
+
+    expect(engine.bestMove).not.toHaveBeenCalled();
+    expect(result.accepted).toBe("e4");
+    expect(result.aiMove).toBe("e5");
+  });
+
+  it("retryAiMove는 사람이 아직 한 수도 안 뒀으면 NotAiTurnException", async () => {
+    const { prisma } = createFakeGame({ color: "white" });
+    const engine = { bestMove: jest.fn() };
+    const service = await buildService(prisma, engine);
+
+    await expect(service.retryAiMove("u1", "g1")).rejects.toThrow(NotAiTurnException);
+    expect(engine.bestMove).not.toHaveBeenCalled();
   });
 
   it("resign은 이미 종료된 게임이면 GameAlreadyFinishedException", async () => {

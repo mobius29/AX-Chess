@@ -20,6 +20,8 @@ import { toGameStateDto } from "./games.mapper";
 
 const MOVES_ORDER_BY_PLY = { orderBy: { ply: "asc" as const } };
 
+type Db = PrismaService | Prisma.TransactionClient;
+
 function colorToSide(color: Color): "w" | "b" {
   return color === "white" ? "w" : "b";
 }
@@ -58,11 +60,11 @@ export class GamesService {
     };
   }
 
-  private async finishGame(gameId: string, humanColor: Color, outcome: Outcome, moveCount: number) {
+  private async finishGame(db: Db, gameId: string, humanColor: Color, outcome: Outcome, moveCount: number) {
     const result: GameResult =
       outcome.winner === null ? "draw" : outcome.winner === colorToSide(humanColor) ? "win" : "loss";
 
-    const game = await this.prisma.game.update({
+    const game = await db.game.update({
       where: { id: gameId },
       data: { status: "finished", result, endedReason: outcome.reason, moveCount, endedAt: new Date() },
       include: { moves: MOVES_ORDER_BY_PLY },
@@ -71,33 +73,34 @@ export class GamesService {
     return this.deriveState(game).state;
   }
 
-  private async playAiMove(
-    gameId: string,
-    humanColor: Color,
-    difficulty: Difficulty,
-    sans: string[],
-    currentPly: number,
-  ) {
-    let applied: AppliedMove;
+  private async computeAiReply(sans: string[], difficulty: Difficulty) {
     try {
       const bestMoveUci = await this.engine.bestMove(sans, difficulty);
-      applied = this.chess.applyMove(sans, bestMoveUci);
+      const applied = this.chess.applyMove(sans, bestMoveUci);
+      const outcome = this.chess.getOutcome(this.chess.replay([...sans, applied.san]));
+
+      return { applied, outcome };
     } catch (error) {
       if (error instanceof EngineUnavailableError) throw new EngineUnavailableException();
       throw error;
     }
+  }
 
-    const nextPly = currentPly + 1;
-    const boardAfterAi = this.chess.replay([...sans, applied.san]);
-    const outcome = this.chess.getOutcome(boardAfterAi);
+  private async persistAiReply(
+    db: Db,
+    gameId: string,
+    humanColor: Color,
+    applied: AppliedMove,
+    outcome: Outcome | null,
+    nextPly: number,
+  ) {
+    await db.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
 
-    await this.prisma.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
     if (outcome) {
-      const state = await this.finishGame(gameId, humanColor, outcome, nextPly);
-      return { state, aiMove: applied.san };
+      return { state: await this.finishGame(db, gameId, humanColor, outcome, nextPly), aiMove: applied.san };
     }
 
-    const game = await this.prisma.game.update({
+    const game = await db.game.update({
       where: { id: gameId },
       data: { moveCount: nextPly },
       include: { moves: MOVES_ORDER_BY_PLY },
@@ -109,21 +112,32 @@ export class GamesService {
   async createGame(userId: string, color: ColorChoice, difficulty: Difficulty) {
     const resolvedColor: Color = color === "random" ? (Math.random() < 0.5 ? "white" : "black") : color;
 
-    let game: Game;
+    if (resolvedColor !== "black") {
+      try {
+        const game = await this.prisma.game.create({ data: { userId, color: resolvedColor, difficulty } });
+        return this.deriveState({ ...game, moves: [] }).state;
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new ActiveGameExistsException();
+        }
+        throw error;
+      }
+    }
+
+    const { applied, outcome } = await this.computeAiReply([], difficulty);
+
     try {
-      game = await this.prisma.game.create({ data: { userId, color: resolvedColor, difficulty } });
+      return await this.prisma.$transaction(async (tx) => {
+        const game = await tx.game.create({ data: { userId, color: resolvedColor, difficulty } });
+        const { state } = await this.persistAiReply(tx, game.id, resolvedColor, applied, outcome, 1);
+        return state;
+      });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new ActiveGameExistsException();
       }
       throw error;
     }
-
-    if (resolvedColor === "black") {
-      const { state } = await this.playAiMove(game.id, resolvedColor, difficulty, [], 0);
-      return state;
-    }
-    return this.deriveState({ ...game, moves: [] }).state;
   }
 
   async getActiveGame(userId: string) {
@@ -164,25 +178,29 @@ export class GamesService {
     }
 
     const nextPly = sans.length + 1;
-    const boardAfterHuman = this.chess.replay([...sans, applied.san]);
-    const outcome = this.chess.getOutcome(boardAfterHuman);
+    const humanOutcome = this.chess.getOutcome(this.chess.replay([...sans, applied.san]));
 
-    await this.prisma.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
-
-    if (outcome) {
-      const state = await this.finishGame(gameId, game.color, outcome, nextPly);
+    if (humanOutcome) {
+      const state = await this.prisma.$transaction(async (tx) => {
+        await tx.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
+        return this.finishGame(tx, gameId, game.color, humanOutcome, nextPly);
+      });
       return { ...state, accepted: applied.san, aiMove: null };
     }
 
-    await this.prisma.game.update({ where: { id: gameId }, data: { moveCount: nextPly } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
+      await tx.game.update({ where: { id: gameId }, data: { moveCount: nextPly } });
+    });
 
-    const { state, aiMove } = await this.playAiMove(
-      gameId,
-      game.color,
-      game.difficulty,
+    const { applied: aiApplied, outcome: aiOutcome } = await this.computeAiReply(
       [...sans, applied.san],
-      nextPly,
+      game.difficulty,
     );
+    const { state, aiMove } = await this.prisma.$transaction((tx) =>
+      this.persistAiReply(tx, gameId, game.color, aiApplied, aiOutcome, nextPly + 1),
+    );
+
     return { ...state, accepted: applied.san, aiMove };
   }
 
@@ -196,9 +214,21 @@ export class GamesService {
 
     const board = this.chess.replay(sans);
     const aiSide = colorToSide(game.color) === "w" ? "b" : "w";
-    if (board.turn() !== aiSide) throw new NotAiTurnException();
 
-    const { state, aiMove } = await this.playAiMove(gameId, game.color, game.difficulty, sans, sans.length);
+    if (board.turn() !== aiSide) {
+      if (sans.length === 0) throw new NotAiTurnException();
+      return {
+        ...this.deriveState(game).state,
+        accepted: sans[sans.length - 2] ?? null,
+        aiMove: sans[sans.length - 1] ?? null,
+      };
+    }
+
+    const { applied, outcome } = await this.computeAiReply(sans, game.difficulty);
+    const { state, aiMove } = await this.prisma.$transaction((tx) =>
+      this.persistAiReply(tx, gameId, game.color, applied, outcome, sans.length + 1),
+    );
+
     return { ...state, accepted: sans[sans.length - 1] ?? null, aiMove };
   }
 

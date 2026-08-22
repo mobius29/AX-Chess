@@ -6,6 +6,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
 import { GamesModule } from "./games/games.module";
+import { PrismaModule } from "./prisma.module";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { GamesModule } from "./games/games.module";
       useFactory: (configService: ConfigService) => ({ secret: configService.getOrThrow<string>("JWT_SECRET") }),
       inject: [ConfigService],
     }),
+    PrismaModule,
     AuthModule,
     GamesModule,
   ],
