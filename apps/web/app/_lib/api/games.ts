@@ -1,13 +1,6 @@
-import type {
-  ColorChoice,
-  CreateGameRequest,
-  Difficulty,
-  GameStateDto,
-  ResignResponse,
-  SubmitMoveResponse,
-} from "@ax-chess/shared";
+import type { CreateGameRequest, GameStateDto, ResignResponse, SubmitMoveResponse } from "@ax-chess/shared";
 
-import { apiRequest } from "./api";
+import { apiRequest } from "./apiClient";
 
 export const activeGameQueryKey = ["activeGame"] as const;
 export const gameQueryKey = (id: string) => ["game", id] as const;
@@ -22,9 +15,8 @@ export const getGame = async (id: string) => {
   return response.json<GameStateDto>();
 };
 
-export const createGame = async (color: ColorChoice, difficulty: Difficulty) => {
-  const req: CreateGameRequest = { color, difficulty };
-  const response = await apiRequest("post", "games", { json: req });
+export const createGame = async (request: CreateGameRequest) => {
+  const response = await apiRequest("post", "games", { json: request });
   return response.json<GameStateDto>();
 };
 

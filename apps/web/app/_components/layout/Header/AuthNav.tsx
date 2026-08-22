@@ -5,7 +5,7 @@ import clsx from "clsx";
 
 import { Button } from "@/app/_components/ui/Button";
 import { Link } from "@/app/_components/ui/Link";
-import { currentUserQueryKey, getCurrentUser, logout } from "@/app/_lib/auth";
+import { currentUserQueryKey, getCurrentUser, logout } from "@/app/_lib/api/auth";
 
 const AuthNav = () => {
   const queryClient = useQueryClient();

@@ -10,10 +10,8 @@ const isApiError = (value: unknown): value is ApiError =>
   "message" in value &&
   typeof value.message === "string";
 
-/** 서버 에러 응답의 code를 그대로 들고 있다. 화면별 분기(ENGINE_UNAVAILABLE → 재시도 등)는 이 code로 한다. */
 export class ApiRequestError extends Error {
   code: ApiErrorCode | "UNKNOWN";
-  /** ILLEGAL_MOVE 응답에만 실려 오는 값 */
   illegalCount?: number;
 
   constructor(code: ApiErrorCode | "UNKNOWN", message: string, illegalCount?: number) {

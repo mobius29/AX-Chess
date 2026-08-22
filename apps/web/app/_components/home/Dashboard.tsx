@@ -4,10 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Link } from "@/app/_components/ui/Link";
 import { Body, Title } from "@/app/_components/ui/Typography";
-import { activeGameQueryKey, getActiveGame } from "@/app/_lib/games";
+import { activeGameQueryKey, getActiveGame } from "@/app/_lib/api/games";
 import { COLOR_LABEL, DIFFICULTY_LABEL } from "@/app/_lib/labels";
 
-/** 로그인 상태의 홈. 이어할 대국이 있으면 카드로, 없으면 새 게임 시작을 유도한다. */
 const Dashboard = () => {
   const { data: activeGame, isPending } = useQuery({ queryFn: getActiveGame, queryKey: activeGameQueryKey });
 

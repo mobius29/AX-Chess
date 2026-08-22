@@ -1,6 +1,8 @@
 import clsx from "clsx";
 import type { ComponentProps } from "react";
 
+import { Input } from "@/app/_components/ui/Input";
+
 type FormProps = ComponentProps<"form">;
 type FormFieldProps = Omit<ComponentProps<"input">, "name"> & {
   hint?: string;
@@ -17,14 +19,9 @@ export const FormField = ({ className, hint, id, label, name, ...props }: FormFi
   return (
     <label className="text-body-strong block text-[13px] leading-[1.4] font-medium" htmlFor={inputId}>
       {label}
-      <input
+      <Input
         aria-describedby={hintId}
-        className={clsx(
-          "mt-2 h-10 w-full rounded-sm border px-3.5 text-base leading-[1.2]",
-          "border-hairline bg-canvas text-ink placeholder:text-muted-soft",
-          "outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgb(204_120_92_/_0.15)]",
-          className,
-        )}
+        className={clsx("mt-2 h-10 w-full text-base leading-[1.2]", className)}
         id={inputId}
         name={name}
         {...props}
