@@ -3,7 +3,7 @@
 import type { CreateGameRequest } from "@ax-chess/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/app/_components/ui/Button";
 import { Body, Caption, Title } from "@/app/_components/ui/Typography";
@@ -27,11 +27,11 @@ const NewGamePage = () => {
     },
   });
 
-  if (activeGameQuery.isPending) return null;
-  if (activeGameQuery.data) {
-    router.replace(`/games/${activeGameQuery.data.id}`);
-    return null;
-  }
+  useEffect(() => {
+    if (activeGameQuery.data) router.replace(`/games/${activeGameQuery.data.id}`);
+  }, [activeGameQuery.data, router]);
+
+  if (activeGameQuery.isPending || activeGameQuery.data) return null;
 
   return (
     <section className="mx-auto w-full max-w-[520px] flex-1 px-5 py-12 md:px-10">
