@@ -1,4 +1,12 @@
-import type { Color, ColorChoice, Difficulty, GameResult, ResignResponse, SubmitMoveResponse } from "@ax-chess/shared";
+import type {
+  Color,
+  ColorChoice,
+  Difficulty,
+  GameListResponse,
+  GameResult,
+  ResignResponse,
+  SubmitMoveResponse,
+} from "@ax-chess/shared";
 import { Injectable } from "@nestjs/common";
 import type { Chess } from "chess.js";
 
@@ -16,9 +24,10 @@ import {
   NotAiTurnException,
   NotYourTurnException,
 } from "./games.errors";
-import { toGameStateDto } from "./games.mapper";
+import { toGameStateDto, toGameSummaryDto } from "./games.mapper";
 
 const MOVES_ORDER_BY_PLY = { orderBy: { ply: "asc" as const } };
+const DEFAULT_GAME_LIST_LIMIT = 20;
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -232,6 +241,24 @@ export class GamesService {
     return { ...state, accepted: sans[sans.length - 1] ?? null, aiMove };
   }
 
+  async listGames(userId: string, limit = DEFAULT_GAME_LIST_LIMIT, cursor?: string): Promise<GameListResponse> {
+    const games = await this.prisma.game.findMany({
+      where: { userId, status: "finished" },
+      orderBy: [{ endedAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = games.length > limit;
+    const page = hasMore ? games.slice(0, limit) : games;
+    const lastItem = page.at(-1);
+
+    return {
+      items: page.map(toGameSummaryDto),
+      nextCursor: hasMore && lastItem ? lastItem.id : null,
+    };
+  }
+
   async resign(userId: string, gameId: string): Promise<ResignResponse> {
     const game = await this.findOwnedGame(userId, gameId);
     if (game.status === "finished") throw new GameAlreadyFinishedException();
@@ -241,14 +268,19 @@ export class GamesService {
       data: { status: "finished", result: "loss", endedReason: "resign", endedAt: new Date() },
     });
 
+    const { result, endedReason, endedAt } = updated;
+    if (!result || !endedReason || !endedAt) {
+      throw new Error(`기권 처리한 게임 ${updated.id}에 result/endedReason/endedAt이 비어 있습니다.`);
+    }
+
     return {
       id: updated.id,
       status: updated.status,
-      result: updated.result!,
-      endedReason: updated.endedReason!,
+      result,
+      endedReason,
       moveCount: updated.moveCount,
       illegalCount: updated.illegalCount,
-      endedAt: updated.endedAt!.toISOString(),
+      endedAt: endedAt.toISOString(),
     };
   }
 }

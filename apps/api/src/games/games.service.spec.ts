@@ -15,10 +15,6 @@ import {
 } from "./games.errors";
 import { GamesService } from "./games.service";
 
-/**
- * In-memory 게임 row 하나를 흉내 낸다. 실제 Postgres 대신 game.update/move.create가
- * 같은 객체를 누적 변경하도록 해서, GamesService가 스스로 재조회한 값을 기준으로 판단하는지 검증한다.
- */
 function createFakeGame(overrides: Partial<{ color: "white" | "black"; moves: string[] }> = {}) {
   const state = {
     id: "g1",
@@ -65,6 +61,34 @@ function createFakeGame(overrides: Partial<{ color: "white" | "black"; moves: st
 
 function withTransaction<T extends object>(client: T): T & { $transaction: jest.Mock } {
   return Object.assign(client, { $transaction: jest.fn((callback: (tx: T) => unknown) => callback(client)) });
+}
+
+function buildFinishedGame(
+  overrides: Partial<{
+    id: string;
+    color: "white" | "black";
+    moveCount: number;
+    illegalCount: number;
+    endedAt: Date;
+  }> = {},
+) {
+  return {
+    id: overrides.id ?? "g1",
+    userId: "u1",
+    color: overrides.color ?? "white",
+    difficulty: "normal",
+    status: "finished" as const,
+    result: "win",
+    endedReason: "checkmate",
+    moveCount: overrides.moveCount ?? 0,
+    illegalCount: overrides.illegalCount ?? 0,
+    createdAt: new Date("2026-01-01"),
+    endedAt: overrides.endedAt ?? new Date("2026-01-01"),
+  };
+}
+
+function createListGamesPrisma(games: ReturnType<typeof buildFinishedGame>[]) {
+  return withTransaction({ game: { findMany: jest.fn().mockResolvedValue(games) } });
 }
 
 describe("GamesService", () => {
@@ -191,5 +215,85 @@ describe("GamesService", () => {
     await service.resign("u1", "g1");
 
     await expect(service.resign("u1", "g1")).rejects.toThrow(GameAlreadyFinishedException);
+  });
+
+  describe("listGames 정확도 계산", () => {
+    it("백은 홀수 ply가 자신의 수다 (moveCount=7, illegal=1 → 4/5=0.8)", async () => {
+      const prisma = createListGamesPrisma([buildFinishedGame({ color: "white", moveCount: 7, illegalCount: 1 })]);
+      const service = await buildService(prisma);
+
+      const { items } = await service.listGames("u1");
+
+      expect(items[0]?.accuracy).toBe(0.8);
+    });
+
+    it("흑은 짝수 ply가 자신의 수다 (moveCount=7, illegal=0 → 3/3=1)", async () => {
+      const prisma = createListGamesPrisma([buildFinishedGame({ color: "black", moveCount: 7, illegalCount: 0 })]);
+      const service = await buildService(prisma);
+
+      const { items } = await service.listGames("u1");
+
+      expect(items[0]?.accuracy).toBe(1);
+    });
+
+    it("0 ÷ 0 (한 수도 안 두고 기권, 실착도 없음)은 1로 처리한다", async () => {
+      const prisma = createListGamesPrisma([buildFinishedGame({ color: "white", moveCount: 0, illegalCount: 0 })]);
+      const service = await buildService(prisma);
+
+      const { items } = await service.listGames("u1");
+
+      expect(items[0]?.accuracy).toBe(1);
+    });
+
+    it("한 수도 못 두고 실착만 쌓인 채 기권하면 0이다", async () => {
+      const prisma = createListGamesPrisma([buildFinishedGame({ color: "white", moveCount: 0, illegalCount: 2 })]);
+      const service = await buildService(prisma);
+
+      const { items } = await service.listGames("u1");
+
+      expect(items[0]?.accuracy).toBe(0);
+    });
+
+    it("소수점 셋째 자리에서 반올림한다 (2/3 → 0.667)", async () => {
+      const prisma = createListGamesPrisma([buildFinishedGame({ color: "white", moveCount: 3, illegalCount: 1 })]);
+      const service = await buildService(prisma);
+
+      const { items } = await service.listGames("u1");
+
+      expect(items[0]?.accuracy).toBe(0.667);
+    });
+  });
+
+  it("listGames는 limit보다 하나 더 조회해 다음 페이지 존재 여부를 판단하고, 초과분은 잘라낸다", async () => {
+    const games = [buildFinishedGame({ id: "g1" }), buildFinishedGame({ id: "g2" }), buildFinishedGame({ id: "g3" })];
+    const prisma = createListGamesPrisma(games);
+    const service = await buildService(prisma);
+
+    const result = await service.listGames("u1", 2);
+
+    expect(prisma.game.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "u1", status: "finished" }, take: 3 }),
+    );
+    expect(result.items).toHaveLength(2);
+    expect(result.items.map((item) => item.id)).toEqual(["g1", "g2"]);
+    expect(result.nextCursor).toBe("g2");
+  });
+
+  it("listGames는 마지막 페이지면 nextCursor가 null이다", async () => {
+    const prisma = createListGamesPrisma([buildFinishedGame({ id: "g1" })]);
+    const service = await buildService(prisma);
+
+    const result = await service.listGames("u1", 2);
+
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("listGames는 cursor가 있으면 그 뒤부터 조회한다", async () => {
+    const prisma = createListGamesPrisma([buildFinishedGame({ id: "g5" })]);
+    const service = await buildService(prisma);
+
+    await service.listGames("u1", 20, "g4");
+
+    expect(prisma.game.findMany).toHaveBeenCalledWith(expect.objectContaining({ cursor: { id: "g4" }, skip: 1 }));
   });
 });

@@ -1,10 +1,11 @@
-import type { ActiveGameResponse } from "@ax-chess/shared";
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from "@nestjs/common";
+import type { ActiveGameResponse, GameListResponse } from "@ax-chess/shared";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from "@nestjs/common";
 
 import { CurrentUser } from "../auth/auth.decorator";
 import type { JwtPayload } from "../auth/auth.decorator";
 import { AuthGuard } from "../auth/auth.guard";
 import { CreateGameRequestDTO } from "./dtos/create-game.dto";
+import { ListGamesQueryDTO } from "./dtos/list-games.dto";
 import { SubmitMoveRequestDTO } from "./dtos/submit-move.dto";
 import { GamesService } from "./games.service";
 
@@ -17,6 +18,12 @@ export class GamesController {
   @Post()
   createGame(@CurrentUser() user: JwtPayload, @Body() dto: CreateGameRequestDTO) {
     return this.gamesService.createGame(user.sub, dto.color, dto.difficulty);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get()
+  listGames(@CurrentUser() user: JwtPayload, @Query() query: ListGamesQueryDTO): Promise<GameListResponse> {
+    return this.gamesService.listGames(user.sub, query.limit, query.cursor);
   }
 
   @HttpCode(HttpStatus.OK)

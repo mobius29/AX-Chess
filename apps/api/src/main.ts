@@ -11,10 +11,9 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
   app.use(requestLogger);
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Swagger configuration
   const config = new DocumentBuilder().setTitle("AX-Chess").setVersion("0.1").build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, documentFactory);
