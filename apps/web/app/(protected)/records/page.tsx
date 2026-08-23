@@ -4,7 +4,7 @@ import type { GameListResponse } from "@ax-chess/shared";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { Button } from "@/app/_components/ui/Button";
-import { Body, Title } from "@/app/_components/ui/Typography";
+import { Body, Caption, Title } from "@/app/_components/ui/Typography";
 import { gamesListQueryKey, getGames } from "@/app/_lib/api/games";
 
 import GameSummaryCard from "./components/GameSummaryCard";
@@ -27,6 +27,15 @@ const RecordsPage = () => {
 
       {query.isPending ? (
         <div className="bg-surface-card mt-8 h-40 animate-pulse rounded-lg" />
+      ) : query.isError ? (
+        <div className="mt-8">
+          <Caption role="alert" tone="error">
+            대국 기록을 불러오지 못했습니다.
+          </Caption>
+          <Button className="mt-3" onClick={() => query.refetch()} size="sm" type="button" variant="text">
+            다시 시도
+          </Button>
+        </div>
       ) : games.length === 0 ? (
         <Body className="mt-8" tone="muted">
           아직 끝난 대국이 없습니다.
