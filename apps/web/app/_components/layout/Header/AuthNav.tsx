@@ -18,16 +18,21 @@ const AuthNav = () => {
 
   if (isPending) return null;
 
+  const navLinkClass = clsx(
+    "rounded-sm px-3 py-2 text-[14px] font-semibold transition-colors",
+    "text-body-strong hover:text-primary-active",
+  );
+
   return user ? (
     <>
-      <Link
-        className={clsx(
-          "rounded-sm px-3 py-2 text-[14px] font-semibold transition-colors",
-          "text-body-strong hover:text-primary-active",
-        )}
-        href="/games/new"
-      >
+      <Link className={navLinkClass} href="/games/new">
         새 게임
+      </Link>
+      <Link className={navLinkClass} href="/records">
+        기록
+      </Link>
+      <Link className={navLinkClass} href="/profile">
+        프로필
       </Link>
       <span className="text-body-strong text-[14px] font-semibold">{user.nickname}</span>
       <Button
@@ -42,13 +47,7 @@ const AuthNav = () => {
     </>
   ) : (
     <>
-      <Link
-        className={clsx(
-          "rounded-sm px-3 py-2 text-[14px] font-semibold transition-colors",
-          "text-body-strong hover:text-primary-active",
-        )}
-        href="/login"
-      >
+      <Link className={navLinkClass} href="/login">
         로그인
       </Link>
       <Link href="/sign-up" size="sm" variant="primary">

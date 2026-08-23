@@ -18,7 +18,8 @@ const proxyRequest = async (request: Request, { params }: Context) => {
 
   const cookieStore = await cookies();
   const token = cookieStore.get(AUTH_COOKIE)?.value;
-  const upstream = await fetch(`${API_URL.replace(/\/$/, "")}/${path}`, {
+  const { search } = new URL(request.url);
+  const upstream = await fetch(`${API_URL.replace(/\/$/, "")}/${path}${search}`, {
     body: request.method === "GET" ? undefined : await request.text(),
     cache: "no-store",
     headers: {
