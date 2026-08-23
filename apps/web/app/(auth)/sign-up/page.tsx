@@ -9,7 +9,7 @@ import { Button } from "@/app/_components/ui/Button";
 import { Form, FormField } from "@/app/_components/ui/Form";
 import { BrandLink, Link } from "@/app/_components/ui/Link";
 import { Body, Caption, Title } from "@/app/_components/ui/Typography";
-import { apiRequest } from "@/app/_lib/api";
+import { apiRequest } from "@/app/_lib/api/apiClient";
 
 const SignUpPage = () => {
   const router = useRouter();

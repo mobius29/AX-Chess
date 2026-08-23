@@ -5,7 +5,7 @@ import clsx from "clsx";
 
 import { Button } from "@/app/_components/ui/Button";
 import { Link } from "@/app/_components/ui/Link";
-import { currentUserQueryKey, getCurrentUser, logout } from "@/app/_lib/auth";
+import { currentUserQueryKey, getCurrentUser, logout } from "@/app/_lib/api/auth";
 
 const AuthNav = () => {
   const queryClient = useQueryClient();
@@ -20,6 +20,15 @@ const AuthNav = () => {
 
   return user ? (
     <>
+      <Link
+        className={clsx(
+          "rounded-sm px-3 py-2 text-[14px] font-semibold transition-colors",
+          "text-body-strong hover:text-primary-active",
+        )}
+        href="/games/new"
+      >
+        새 게임
+      </Link>
       <span className="text-body-strong text-[14px] font-semibold">{user.nickname}</span>
       <Button
         disabled={logoutMutation.isPending}

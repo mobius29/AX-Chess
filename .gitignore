@@ -14,3 +14,6 @@ build/
 .claude/settings.local.json
 
 .pnpm-store/
+
+.env*
+!.env.example

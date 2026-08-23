@@ -9,8 +9,8 @@ import { Button } from "@/app/_components/ui/Button";
 import { Form, FormField } from "@/app/_components/ui/Form";
 import { BrandLink, Link } from "@/app/_components/ui/Link";
 import { Body, Caption, Title } from "@/app/_components/ui/Typography";
-import { apiRequest } from "@/app/_lib/api";
-import { currentUserQueryKey } from "@/app/_lib/auth";
+import { apiRequest } from "@/app/_lib/api/apiClient";
+import { currentUserQueryKey } from "@/app/_lib/api/auth";
 
 const LoginPage = () => {
   const router = useRouter();
