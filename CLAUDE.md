@@ -120,3 +120,9 @@ Next is **Phase 2, the data layer** — Prisma schema, the `one_active_game_per_
 The Notion development checklist is the source of truth for phase order and per-phase acceptance criteria. Do not reorder it — the sequence is built so each phase ends with something you can see working.
 
 Run `/blindfold-check` before opening a PR.
+
+---
+
+## 8. Workflow
+
+Claude implements. User reviews. Do not wait for explicit "구현해줘" per task — write code directly, following the phase order in section 7 and the Notion checklist. Open a PR per phase (or per sub-task if large) for review rather than pushing straight to main.

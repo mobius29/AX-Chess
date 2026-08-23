@@ -1,4 +1,13 @@
-import type { Color, ColorChoice, Difficulty, GameResult, ResignResponse, SubmitMoveResponse } from "@ax-chess/shared";
+import type {
+  Color,
+  ColorChoice,
+  Difficulty,
+  GameListResponse,
+  GameResult,
+  GameSummaryDto,
+  ResignResponse,
+  SubmitMoveResponse,
+} from "@ax-chess/shared";
 import { Injectable } from "@nestjs/common";
 import type { Chess } from "chess.js";
 
@@ -10,15 +19,17 @@ import {
   ActiveGameExistsException,
   EngineUnavailableException,
   GameAlreadyFinishedException,
+  GameDataIntegrityException,
   GameForbiddenException,
   GameNotFoundException,
   IllegalMoveException,
   NotAiTurnException,
   NotYourTurnException,
 } from "./games.errors";
-import { toGameStateDto } from "./games.mapper";
+import { assertFinishedFields, toGameStateDto, toGameSummaryDto } from "./games.mapper";
 
 const MOVES_ORDER_BY_PLY = { orderBy: { ply: "asc" as const } };
+const DEFAULT_GAME_LIST_LIMIT = 20;
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -60,17 +71,32 @@ export class GamesService {
     };
   }
 
-  private async finishGame(db: Db, gameId: string, humanColor: Color, outcome: Outcome, moveCount: number) {
+  private async finishGame(db: Db, gameId: string, humanColor: Color, outcome: Outcome, moveCount?: number) {
     const result: GameResult =
       outcome.winner === null ? "draw" : outcome.winner === colorToSide(humanColor) ? "win" : "loss";
 
-    const game = await db.game.update({
-      where: { id: gameId },
-      data: { status: "finished", result, endedReason: outcome.reason, moveCount, endedAt: new Date() },
-      include: { moves: MOVES_ORDER_BY_PLY },
-    });
+    let game: Game & { moves: { san: string }[] };
+    try {
+      game = await db.game.update({
+        where: { id: gameId, status: "active" },
+        data: {
+          status: "finished",
+          result,
+          endedReason: outcome.reason,
+          endedAt: new Date(),
+          ...(moveCount !== undefined ? { moveCount } : {}),
+        },
+        include: { moves: MOVES_ORDER_BY_PLY },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        throw new GameAlreadyFinishedException();
+      }
+      throw error;
+    }
 
-    return this.deriveState(game).state;
+    assertFinishedFields(game);
+    return game;
   }
 
   private async computeAiReply(sans: string[], difficulty: Difficulty) {
@@ -97,7 +123,8 @@ export class GamesService {
     await db.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
 
     if (outcome) {
-      return { state: await this.finishGame(db, gameId, humanColor, outcome, nextPly), aiMove: applied.san };
+      const finishedGame = await this.finishGame(db, gameId, humanColor, outcome, nextPly);
+      return { state: this.deriveState(finishedGame).state, aiMove: applied.san };
     }
 
     const game = await db.game.update({
@@ -181,10 +208,11 @@ export class GamesService {
     const humanOutcome = this.chess.getOutcome(this.chess.replay([...sans, applied.san]));
 
     if (humanOutcome) {
-      const state = await this.prisma.$transaction(async (tx) => {
+      const finishedGame = await this.prisma.$transaction(async (tx) => {
         await tx.move.create({ data: { gameId, ply: nextPly, san: applied.san } });
         return this.finishGame(tx, gameId, game.color, humanOutcome, nextPly);
       });
+      const state = this.deriveState(finishedGame).state;
       return { ...state, accepted: applied.san, aiMove: null };
     }
 
@@ -232,23 +260,56 @@ export class GamesService {
     return { ...state, accepted: sans[sans.length - 1] ?? null, aiMove };
   }
 
+  async listGames(userId: string, limit = DEFAULT_GAME_LIST_LIMIT, cursor?: string): Promise<GameListResponse> {
+    const safeLimit = Math.max(1, limit);
+
+    if (cursor) {
+      const owned = await this.prisma.game.findFirst({
+        where: { id: cursor, status: "finished" },
+        select: { id: true, userId: true },
+      });
+      if (!owned) throw new GameNotFoundException();
+      if (owned.userId !== userId) throw new GameForbiddenException();
+    }
+
+    const games = await this.prisma.game.findMany({
+      where: { userId, status: "finished" },
+      orderBy: [{ endedAt: "desc" }, { id: "desc" }],
+      take: safeLimit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = games.length > safeLimit;
+    const page = hasMore ? games.slice(0, safeLimit) : games;
+
+    const items: GameSummaryDto[] = [];
+    for (const g of page) {
+      try {
+        items.push(toGameSummaryDto(g));
+      } catch (error) {
+        if (error instanceof GameDataIntegrityException) continue;
+        throw error;
+      }
+    }
+
+    return { items, nextCursor: hasMore ? page.at(-1)!.id : null };
+  }
+
   async resign(userId: string, gameId: string): Promise<ResignResponse> {
     const game = await this.findOwnedGame(userId, gameId);
     if (game.status === "finished") throw new GameAlreadyFinishedException();
 
-    const updated = await this.prisma.game.update({
-      where: { id: gameId },
-      data: { status: "finished", result: "loss", endedReason: "resign", endedAt: new Date() },
-    });
+    const aiSide = colorToSide(game.color) === "w" ? "b" : "w";
+    const finished = await this.finishGame(this.prisma, gameId, game.color, { winner: aiSide, reason: "resign" });
 
     return {
-      id: updated.id,
-      status: updated.status,
-      result: updated.result!,
-      endedReason: updated.endedReason!,
-      moveCount: updated.moveCount,
-      illegalCount: updated.illegalCount,
-      endedAt: updated.endedAt!.toISOString(),
+      id: finished.id,
+      status: finished.status,
+      result: finished.result,
+      endedReason: finished.endedReason,
+      moveCount: finished.moveCount,
+      illegalCount: finished.illegalCount,
+      endedAt: finished.endedAt.toISOString(),
     };
   }
 }

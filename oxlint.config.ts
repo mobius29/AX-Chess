@@ -12,7 +12,7 @@ export default defineConfig({
     "typescript/no-extraneous-class": ["error", { allowWithDecorator: true }],
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": "off",
-    "no-assign-to-const": "off",
+    "no-const-assign": "off",
     "nextjs/no-assign-module-variable": "off",
   },
   ignorePatterns: ["dist", ".next", "node_modules", "next-env.d.ts", "coverage"],

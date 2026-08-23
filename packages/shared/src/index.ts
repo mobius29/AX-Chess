@@ -147,7 +147,8 @@ export type ApiErrorCode =
   | "NOT_YOUR_TURN"
   | "NOT_AI_TURN"
   | "ILLEGAL_MOVE"
-  | "ENGINE_UNAVAILABLE";
+  | "ENGINE_UNAVAILABLE"
+  | "INTERNAL_ERROR";
 
 export interface ApiError {
   code: ApiErrorCode;
