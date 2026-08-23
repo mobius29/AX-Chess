@@ -1,6 +1,7 @@
 import type {
   ActiveGameResponse,
   CreateGameRequest,
+  GameListResponse,
   GameStateDto,
   ResignResponse,
   SubmitMoveResponse,
@@ -10,6 +11,7 @@ import { apiRequest } from "./apiClient";
 
 export const activeGameQueryKey = ["activeGame"] as const;
 export const gameQueryKey = (id: string) => ["game", id] as const;
+export const gamesListQueryKey = ["games"] as const;
 
 export const getActiveGame = async () => {
   const response = await apiRequest("get", "games/active");
@@ -40,4 +42,9 @@ export const retryAiMove = async (id: string) => {
 export const resignGame = async (id: string) => {
   const response = await apiRequest("post", `games/${id}/resign`);
   return response.json<ResignResponse>();
+};
+
+export const getGames = async (cursor?: string) => {
+  const response = await apiRequest("get", "games", cursor ? { searchParams: { cursor } } : undefined);
+  return response.json<GameListResponse>();
 };

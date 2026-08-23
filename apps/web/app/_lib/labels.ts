@@ -6,6 +6,12 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = { easy: "쉬움", no
 
 export const RESULT_LABEL: Record<GameResult, string> = { win: "승리", loss: "패배", draw: "무승부" };
 
+export const RESULT_BADGE_CLASS: Record<GameResult, string> = {
+  win: "bg-success/15 text-success",
+  loss: "bg-error/15 text-error",
+  draw: "bg-warning/15 text-warning",
+};
+
 export const ENDED_REASON_LABEL: Record<EndedReason, string> = {
   checkmate: "체크메이트",
   stalemate: "스테일메이트",
