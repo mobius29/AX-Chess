@@ -1,6 +1,7 @@
-import type { Color, GameStateDto, GameSummaryDto } from "@ax-chess/shared";
+import type { Color, EndedReason, GameResult, GameStateDto, GameSummaryDto } from "@ax-chess/shared";
 
 import type { Game } from "../../generated/prisma/client";
+import { GameDataIntegrityException } from "./games.errors";
 
 export interface GameStateInput {
   game: Game;
@@ -27,33 +28,33 @@ export function toGameStateDto({ game, moves, turn, inCheck }: GameStateInput): 
   };
 }
 
-function userMoveCount(game: Game): number {
-  return game.color === "white" ? Math.ceil(game.moveCount / 2) : Math.floor(game.moveCount / 2);
+export function assertFinishedFields(
+  game: Game,
+): asserts game is Game & { result: GameResult; endedReason: EndedReason; endedAt: Date } {
+  if (!game.result || !game.endedReason || !game.endedAt) {
+    throw new GameDataIntegrityException(`종료된 게임 ${game.id}에 result/endedReason/endedAt이 비어 있습니다.`);
+  }
 }
 
 function computeAccuracy(game: Game): number {
-  const moved = userMoveCount(game);
-  const denominator = moved + game.illegalCount;
+  const denominator = game.moveCount + game.illegalCount;
   if (denominator === 0) return 1;
 
-  return Math.round((moved / denominator) * 1000) / 1000;
+  return Math.round((game.moveCount / denominator) * 1000) / 1000;
 }
 
 export function toGameSummaryDto(game: Game): GameSummaryDto {
-  const { result, endedReason, endedAt } = game;
-  if (!result || !endedReason || !endedAt) {
-    throw new Error(`종료된 게임 ${game.id}에 result/endedReason/endedAt이 비어 있습니다.`);
-  }
+  assertFinishedFields(game);
 
   return {
     id: game.id,
-    result,
-    endedReason,
+    result: game.result,
+    endedReason: game.endedReason,
     difficulty: game.difficulty,
     color: game.color,
     moveCount: game.moveCount,
     illegalCount: game.illegalCount,
     accuracy: computeAccuracy(game),
-    endedAt: endedAt.toISOString(),
+    endedAt: game.endedAt.toISOString(),
   };
 }

@@ -54,3 +54,10 @@ export class EngineUnavailableException extends GameApiException {
     super("ENGINE_UNAVAILABLE", "엔진이 응답하지 않습니다.", HttpStatus.SERVICE_UNAVAILABLE);
   }
 }
+
+export class GameDataIntegrityException extends GameApiException {
+  constructor(detail: string) {
+    super("INTERNAL_ERROR", "게임 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+    this.cause = detail;
+  }
+}

@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 export class ListGamesQueryDTO {
   @IsOptional()
@@ -11,5 +11,6 @@ export class ListGamesQueryDTO {
 
   @IsOptional()
   @IsString()
+  @MaxLength(30)
   cursor?: string;
 }
