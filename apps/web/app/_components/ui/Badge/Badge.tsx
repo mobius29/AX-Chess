@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import type { ComponentProps } from "react";
 
-type BadgeVariant = "coral" | "dark" | "default";
+type BadgeVariant = "coral" | "dark" | "default" | "loss" | "win";
 
 type BadgeProps = ComponentProps<"span"> & {
   dot?: boolean;
@@ -12,12 +12,16 @@ const variants: Record<BadgeVariant, string> = {
   coral: "bg-primary text-on-primary text-[12px] font-semibold tracking-[0.09em] uppercase",
   dark: "bg-surface-dark-elevated border-hairline-dark border text-on-dark text-[13px] font-medium",
   default: "bg-surface-card text-ink text-[13px] font-medium",
+  loss: "bg-error/15 text-error text-[13px] font-medium",
+  win: "bg-success/15 text-success text-[13px] font-medium",
 };
 
 const dotColors: Record<BadgeVariant, string> = {
   coral: "bg-on-primary",
   dark: "bg-accent-teal",
   default: "bg-accent-teal",
+  loss: "bg-error",
+  win: "bg-success",
 };
 
 const Badge = ({ children, className, dot = false, variant = "default", ...props }: BadgeProps) => (

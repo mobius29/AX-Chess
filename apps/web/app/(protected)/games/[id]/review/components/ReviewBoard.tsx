@@ -35,7 +35,7 @@ const ReviewBoard = ({ fen, orientation }: { fen: string; orientation: Color }) 
   return (
     <div
       aria-hidden="true"
-      className="border-hairline mx-auto grid aspect-square w-full max-w-[420px] grid-cols-8 grid-rows-8 overflow-hidden rounded-lg border"
+      className="border-hairline mx-auto grid aspect-square w-full max-w-[480px] grid-cols-8 grid-rows-8 overflow-hidden rounded-lg border"
     >
       {displayCells.map(({ isLight, piece, square }) => (
         <div
