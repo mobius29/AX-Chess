@@ -27,6 +27,18 @@ export class ChessService {
     return chess;
   }
 
+  replayWithFens(sans: string[]): string[] {
+    const chess = new Chess();
+    return sans.map((san) => {
+      chess.move(san, { strict: true });
+      return chess.fen();
+    });
+  }
+
+  initialFen(): string {
+    return new Chess().fen();
+  }
+
   applyMove(sans: string[], input: string): AppliedMove {
     const board = this.replay(sans);
     const normalizedInput = input

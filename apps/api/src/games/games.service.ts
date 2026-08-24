@@ -45,7 +45,7 @@ export class GamesService {
     private readonly engine: EngineService,
   ) {}
 
-  private async findOwnedGame(userId: string, gameId: string) {
+  async findOwnedGame(userId: string, gameId: string) {
     const game = await this.prisma.game.findUnique({ where: { id: gameId }, include: { moves: MOVES_ORDER_BY_PLY } });
     if (!game) throw new GameNotFoundException();
     if (game.userId !== userId) throw new GameForbiddenException();
