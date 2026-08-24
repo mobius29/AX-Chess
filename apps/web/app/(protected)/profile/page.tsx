@@ -1,20 +1,19 @@
 "use client";
 
-import type { UserDto } from "@ax-chess/shared";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
+import { AppNav } from "@/app/_components/layout/AppNav";
+import { Avatar } from "@/app/_components/ui/Avatar";
 import { Button } from "@/app/_components/ui/Button";
+import { Stat } from "@/app/_components/ui/Stat";
 import { Body, Caption, Title } from "@/app/_components/ui/Typography";
-import { currentUserQueryKey, getCurrentUser } from "@/app/_lib/api/auth";
-
-const STAT_LABEL: Record<keyof UserDto["stats"], string> = {
-  total: "총판",
-  wins: "승",
-  losses: "패",
-  draws: "무",
-};
+import { currentUserQueryKey, getCurrentUser, logout } from "@/app/_lib/api/auth";
 
 const ProfilePage = () => {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
   const {
     data: user,
     isError,
@@ -22,41 +21,78 @@ const ProfilePage = () => {
     refetch,
   } = useQuery({ queryFn: getCurrentUser, queryKey: currentUserQueryKey, retry: false });
 
-  if (isPending) {
-    return <div className="bg-surface-card mx-auto mt-12 h-40 w-full max-w-[480px] animate-pulse rounded-lg" />;
-  }
-
-  if (isError || !user) {
-    return (
-      <section className="mx-auto mt-12 w-full max-w-[480px] px-5 md:px-10">
-        <Caption role="alert" tone="error">
-          프로필을 불러오지 못했습니다.
-        </Caption>
-        <Button className="mt-3" onClick={() => refetch()} size="sm" type="button" variant="text">
-          다시 시도
-        </Button>
-      </section>
-    );
-  }
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.setQueryData(currentUserQueryKey, null);
+      router.replace("/login");
+    },
+  });
 
   return (
-    <section className="mx-auto w-full max-w-[480px] flex-1 px-5 py-12 md:px-10">
-      <Title level={3} tone="ink">
-        프로필
-      </Title>
-      <Body className="mt-2" tone="muted">
-        {user.nickname} · {user.email}
-      </Body>
+    <>
+      <AppNav />
 
-      <dl className="border-hairline bg-surface-card mt-8 grid grid-cols-4 gap-4 rounded-lg border p-6 text-center">
-        {(Object.keys(STAT_LABEL) as Array<keyof UserDto["stats"]>).map((key) => (
-          <div key={key}>
-            <dt className="text-caption-1 text-muted">{STAT_LABEL[key]}</dt>
-            <dd className="text-title-4 text-ink mt-1 font-semibold">{user.stats[key]}</dd>
+      {isPending ? (
+        <div className="bg-surface-card mx-auto mt-12 h-40 w-full max-w-[840px] animate-pulse rounded-lg" />
+      ) : isError || !user ? (
+        <section className="mx-auto mt-12 w-full max-w-[840px] px-5 md:px-10">
+          <Caption role="alert" tone="error">
+            프로필을 불러오지 못했습니다.
+          </Caption>
+          <Button className="mt-3" onClick={() => refetch()} size="sm" type="button" variant="text">
+            다시 시도
+          </Button>
+        </section>
+      ) : (
+        <section className="mx-auto w-full max-w-[840px] flex-1 px-5 py-14 md:px-10">
+          <div className="flex items-center gap-6">
+            <Avatar className="size-14 text-[16px]" nickname={user.nickname} />
+            <div>
+              <Title level={2} tone="ink">
+                {user.nickname}
+              </Title>
+              <Body className="mt-1" level={3} tone="muted">
+                {user.email}
+              </Body>
+            </div>
           </div>
-        ))}
-      </dl>
-    </section>
+
+          <div className="bg-surface-card mt-8 flex gap-6 rounded-lg p-6">
+            <Stat label="총 게임" value={String(user.stats.total)} />
+            <Stat label="승 · 패 · 무" value={`${user.stats.wins} · ${user.stats.losses} · ${user.stats.draws}`} />
+          </div>
+
+          <div className="mt-8 flex flex-col">
+            <div className="border-hairline-soft flex items-center justify-between border-b py-3.5">
+              <Body level={3} tone="muted">
+                닉네임
+              </Body>
+              <p className="text-title-5 text-ink">{user.nickname}</p>
+            </div>
+            <div className="flex items-center justify-between py-3.5">
+              <Body level={3} tone="muted">
+                이메일
+              </Body>
+              <p className="text-title-5 text-ink">{user.email}</p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex items-center gap-3">
+            <Button
+              className="border-hairline rounded-md border px-5 py-2.5"
+              disabled={logoutMutation.isPending}
+              onClick={() => logoutMutation.mutate()}
+              size="sm"
+              type="button"
+              variant="text"
+            >
+              로그아웃
+            </Button>
+          </div>
+        </section>
+      )}
+    </>
   );
 };
 

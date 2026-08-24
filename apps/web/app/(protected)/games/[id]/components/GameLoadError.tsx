@@ -1,11 +1,10 @@
-import { Caption } from "@/app/_components/ui/Typography";
-
 const GameLoadError = () => (
-  <section className="mx-auto w-full max-w-[640px] flex-1 px-5 py-12 md:px-10">
-    <Caption role="alert" tone="error">
+  <div className="bg-surface-dark flex w-full flex-1 flex-col">
+    <div className="border-hairline-dark h-16 border-b" />
+    <p className="text-error p-8 text-[14px] font-semibold" role="alert">
       대국 정보를 불러오지 못했습니다.
-    </Caption>
-  </section>
+    </p>
+  </div>
 );
 
 export default GameLoadError;

@@ -1,27 +1,25 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { SubmitEvent } from "react";
 
 import { Button } from "@/app/_components/ui/Button";
 import { Dialog } from "@/app/_components/ui/Dialog";
-import { Body, Caption, Title } from "@/app/_components/ui/Typography";
+import { Body, Title } from "@/app/_components/ui/Typography";
 import { gameQueryKey, getGame } from "@/app/_lib/api/games";
-import { COLOR_LABEL, DIFFICULTY_LABEL } from "@/app/_lib/labels";
 
 import GameFinishedDialog from "./components/GameFinishedDialog";
 import GameLoadError from "./components/GameLoadError";
 import GameLoading from "./components/GameLoading";
 import GameMoveAction from "./components/GameMoveAction";
 import GameMoveList from "./components/GameMoveList";
+import GameNav from "./components/GameNav";
+import GameSidePanel from "./components/GameSidePanel";
 import useGameMutations from "./hooks/useGameMutations";
 import { getScreenState } from "./screenState";
 
 const GameScreen = ({ gameId }: { gameId: string }) => {
-  const router = useRouter();
-
   const [moveInput, setMoveInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmingResign, setConfirmingResign] = useState(false);
@@ -43,60 +41,52 @@ const GameScreen = ({ gameId }: { gameId: string }) => {
   if (!game) return <GameLoadError />;
 
   const screenState = getScreenState({
-    status: game.status,
     color: game.color,
-    turn: game.turn,
     isSubmitting: moveMutation.isPending || retryMutation.isPending,
+    status: game.status,
+    turn: game.turn,
   });
 
   return (
-    <section className="mx-auto flex w-full max-w-[640px] flex-1 flex-col px-5 py-8 md:px-10">
-      <div className="border-hairline bg-surface-card flex flex-wrap items-center justify-between gap-3 rounded-lg border px-5 py-4">
-        <div>
-          <Title level={4} tone="ink">
-            {COLOR_LABEL[game.color]} · {DIFFICULTY_LABEL[game.difficulty]}
-          </Title>
-          <Body className="mt-1" level={3} tone="muted">
-            {game.turn ? `${COLOR_LABEL[game.turn]}의 차례` : "게임 종료"} · {game.moveCount}수 · 실착수{" "}
-            {game.illegalCount}
-          </Body>
+    <div className="bg-surface-dark flex w-full flex-1 flex-col">
+      <GameNav color={game.color} difficulty={game.difficulty} />
+
+      <div className="flex w-full flex-1 flex-col md:flex-row">
+        <div className="flex w-full flex-1 flex-col justify-between gap-8 overflow-hidden px-6 py-8 md:px-12 md:pt-10 md:pb-8">
+          <GameMoveList moves={game.moves} />
+
+          {screenState === "engineRetry" && (
+            <div className="bg-surface-dark-soft border-hairline-dark flex flex-col items-center gap-4 rounded-md border p-6 text-center">
+              <p className="text-notation-muted text-body-3">
+                엔진이 응답하지 않았습니다. 입력하신 수는 저장되어 있습니다.
+              </p>
+              <Button disabled={retryMutation.isPending} onClick={() => retryMutation.mutate()} type="button">
+                {retryMutation.isPending ? "재요청 중..." : "AI 응수 다시 요청"}
+              </Button>
+            </div>
+          )}
+
+          {(screenState === "ready" || screenState === "submitting") && (
+            <GameMoveAction
+              errorMessage={errorMessage}
+              moveInput={moveInput}
+              onMoveInputChange={setMoveInput}
+              onSubmit={handleSubmit}
+              screenState={screenState}
+            />
+          )}
         </div>
-        <Button onClick={() => setConfirmingResign(true)} size="sm" type="button" variant="text">
-          기권
-        </Button>
-      </div>
 
-      {game.inCheck && (
-        <div className="bg-error/10 text-error mt-4 rounded-sm px-4 py-2 text-[14px] font-semibold" role="alert">
-          체크!
-        </div>
-      )}
-
-      <GameMoveList moves={game.moves} />
-
-      {screenState === "engineRetry" && (
-        <div className="border-hairline bg-surface-card mt-4 rounded-lg border p-5 text-center">
-          <Body tone="muted">엔진이 응답하지 않았습니다. 입력하신 수는 저장되어 있습니다.</Body>
-          <Button className="mt-4" disabled={retryMutation.isPending} onClick={() => retryMutation.mutate()}>
-            {retryMutation.isPending ? "재요청 중..." : "AI 응수 다시 요청"}
-          </Button>
-        </div>
-      )}
-
-      {(screenState === "ready" || screenState === "submitting") && (
-        <GameMoveAction
-          moveInput={moveInput}
-          onMoveInputChange={setMoveInput}
-          onSubmit={handleSubmit}
+        <GameSidePanel
+          color={game.color}
+          difficulty={game.difficulty}
+          illegalCount={game.illegalCount}
+          inCheck={game.inCheck}
+          moveCount={game.moveCount}
+          onResign={() => setConfirmingResign(true)}
           screenState={screenState}
         />
-      )}
-
-      {errorMessage && screenState !== "engineRetry" && (
-        <Caption className="mt-3" role="alert" tone="error">
-          {errorMessage}
-        </Caption>
-      )}
+      </div>
 
       <Dialog onClose={() => setConfirmingResign(false)} open={confirmingResign}>
         <Title level={4} tone="ink">
@@ -115,8 +105,8 @@ const GameScreen = ({ gameId }: { gameId: string }) => {
         </div>
       </Dialog>
 
-      {screenState === "finished" && <GameFinishedDialog game={game} onHome={() => router.push("/")} />}
-    </section>
+      {screenState === "finished" && <GameFinishedDialog game={game} />}
+    </div>
   );
 };
 

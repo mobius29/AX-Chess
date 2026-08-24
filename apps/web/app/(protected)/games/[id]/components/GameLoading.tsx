@@ -1,7 +1,10 @@
 const GameLoading = () => (
-  <section className="mx-auto w-full max-w-[640px] flex-1 px-5 py-12 md:px-10">
-    <div className="bg-surface-card h-96 animate-pulse rounded-lg" />
-  </section>
+  <div className="bg-surface-dark flex w-full flex-1 flex-col">
+    <div className="border-hairline-dark h-16 border-b" />
+    <div className="flex-1 p-8">
+      <div className="bg-surface-dark-elevated h-full animate-pulse rounded-lg" />
+    </div>
+  </div>
 );
 
 export default GameLoading;
