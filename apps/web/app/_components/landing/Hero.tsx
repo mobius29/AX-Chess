@@ -17,9 +17,9 @@ const Hero = () => (
         머릿속에만 있다.
       </h1>
 
-      <p className="text-body-strong max-w-[520px] text-[18px] leading-[1.6]">
-        AX Chess는 대국 중에 체스판을 그리지 않습니다. 기보를 읽고, 기보로 둡니다. 판은 게임이 끝난 뒤 복기 화면에서만
-        열립니다.
+      <p className="text-body-strong text-[18px] leading-[1.6]">
+        AX Chess는 대국 중에 체스판을 그리지 않습니다.
+        <br /> 기보를 읽고, 기보로 둡니다. 판은 게임이 끝난 뒤 복기 화면에서만 열립니다.
       </p>
 
       <div className="flex flex-wrap items-start gap-3">

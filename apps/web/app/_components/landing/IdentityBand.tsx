@@ -18,7 +18,7 @@ const FEATURES = [
 
 const IdentityBand = () => (
   <section className="mx-auto flex w-full max-w-[1400px] flex-col gap-12 px-5 py-16 md:px-10 md:py-24" id="identity">
-    <div className="flex max-w-[640px] flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <p className="text-caption-3 text-muted">제품 정체성</p>
       <h2 className="text-title-2 text-ink font-semibold">빼낸 것이 제품이다.</h2>
       <p className="text-body-2 text-body">

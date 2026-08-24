@@ -27,8 +27,9 @@ const CoreExperienceBand = () => (
           위치를 끊었는가.
         </h2>
         <p className="text-body-2 text-on-dark-soft">
-          수순 암기는 도전 대상이 아닙니다. 그래서 전체 기보는 항상 화면에 남겨둡니다. 사용자가 치러야 할 것은 단 하나,
-          지금 기물이 어디 있는가입니다.
+          수순 암기는 도전 대상이 아닙니다. 그래서 전체 기보는 항상 화면에 남겨둡니다.
+          <br />
+          사용자가 치러야 할 것은 단 하나, 지금 기물이 어디 있는가입니다.
         </p>
         <div className="bg-hairline-dark h-px w-full" />
         <ul className="flex w-full flex-col gap-3">
