@@ -25,13 +25,13 @@ The first call to `/api/games/:id/review` takes about 8 seconds for a 40-move ga
 
 `loading` → `ready` → `submitting` → (`ready` | `finished` | `engineRetry`)
 
-| State | Input | Display |
-|---|---|---|
-| loading | disabled | skeleton |
-| ready | enabled, focused | "your turn" |
-| submitting | disabled | "AI is thinking" |
-| engineRetry | disabled | retry button → `POST /games/:id/ai-move` |
-| finished | hidden | result modal |
+| State       | Input            | Display                                  |
+| ----------- | ---------------- | ---------------------------------------- |
+| loading     | disabled         | skeleton                                 |
+| ready       | enabled, focused | "your turn"                              |
+| submitting  | disabled         | "AI is thinking"                         |
+| engineRetry | disabled         | retry button → `POST /games/:id/ai-move` |
+| finished    | hidden           | result modal                             |
 
 **Do not clear the input when returning to `ready` on `422 ILLEGAL_MOVE`.** Forcing a retype over a single typo breaks blindfold concentration. Display the fixed message the server sent verbatim; the client never guesses at a cause and adds to it.
 

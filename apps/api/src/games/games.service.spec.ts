@@ -94,7 +94,9 @@ function createListGamesPrisma(games: ReturnType<typeof buildFinishedGame>[]) {
   const first = games[0];
   return withTransaction({
     game: {
-      findFirst: jest.fn().mockResolvedValue(first ? { id: first.id, userId: first.userId } : { id: "owned", userId: "u1" }),
+      findFirst: jest
+        .fn()
+        .mockResolvedValue(first ? { id: first.id, userId: first.userId } : { id: "owned", userId: "u1" }),
       findMany: jest.fn().mockResolvedValue(games),
     },
   });
