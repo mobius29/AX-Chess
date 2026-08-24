@@ -45,7 +45,11 @@ const ReviewBoard = ({ fen, orientation }: { fen: string; orientation: Color }) 
           )}
           key={square}
         >
-          {piece && PIECE_GLYPH[piece]}
+          {piece && (
+            <span className={piece === piece.toUpperCase() ? "text-piece-white" : "text-piece-black"}>
+              {PIECE_GLYPH[piece]}
+            </span>
+          )}
         </div>
       ))}
     </div>

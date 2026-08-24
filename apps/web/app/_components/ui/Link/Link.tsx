@@ -37,11 +37,19 @@ const Link = ({ className, size = "default", variant, ...props }: LinkProps) => 
   />
 );
 
-export const BrandLink = ({ className, children = "AX Chess", ...props }: LinkProps) => (
+type BrandLinkProps = LinkProps & { tone?: "dark" | "light" };
+
+const brandTones: Record<"dark" | "light", string> = {
+  dark: "text-ink",
+  light: "text-on-dark",
+};
+
+export const BrandLink = ({ className, children = "AX Chess", tone = "dark", ...props }: BrandLinkProps) => (
   <Link
     className={clsx(
       "inline-flex items-center gap-2.5",
-      "text-ink text-[17px] leading-none font-semibold tracking-[-0.3px]",
+      "text-[17px] leading-none font-semibold tracking-[-0.3px]",
+      brandTones[tone],
       className,
     )}
     {...props}
