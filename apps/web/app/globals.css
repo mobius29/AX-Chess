@@ -131,6 +131,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  word-break: keep-all;
 }
 
 @media (prefers-color-scheme: dark) {
