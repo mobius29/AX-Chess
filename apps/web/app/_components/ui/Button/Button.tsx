@@ -10,7 +10,7 @@ type ButtonProps = ComponentProps<"button"> & {
 };
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-white hover:bg-primary-active disabled:bg-primary-disabled",
+  primary: "bg-primary text-white hover:bg-primary-active disabled:bg-primary-disabled disabled:text-muted",
   text: "text-muted hover:text-primary-active disabled:opacity-50",
 };
 

@@ -11,7 +11,7 @@ import {
   Nav,
   ReviewBand,
 } from "@/app/_components/landing";
-import { Header } from "@/app/_components/layout/Header";
+import { AppNav } from "@/app/_components/layout/AppNav";
 
 const Home = async () => {
   const isLoggedIn = (await cookies()).has("accessToken");
@@ -19,7 +19,7 @@ const Home = async () => {
   if (isLoggedIn) {
     return (
       <main className="bg-canvas flex min-h-[100dvh] flex-col overflow-hidden">
-        <Header />
+        <AppNav />
         <Dashboard />
       </main>
     );
