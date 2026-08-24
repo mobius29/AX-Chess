@@ -22,7 +22,7 @@ const sizes: Record<ButtonSize, string> = {
 const Button = ({ className, size = "default", variant = "primary", ...props }: ButtonProps) => (
   <button
     className={clsx(
-      "rounded-sm font-semibold transition-colors",
+      "cursor-pointer rounded-sm font-semibold transition-colors",
       "focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2",
       "disabled:cursor-not-allowed",
       variants[variant],

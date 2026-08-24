@@ -78,7 +78,7 @@ const AppNav = () => {
                   프로필
                 </NextLink>
                 <button
-                  className="text-body-3 text-body hover:bg-surface-soft block w-full px-4 py-2 text-left disabled:opacity-50"
+                  className="text-body-3 text-body hover:bg-surface-soft block w-full cursor-pointer px-4 py-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={logoutMutation.isPending}
                   onClick={() => logoutMutation.mutate()}
                   type="button"
