@@ -13,6 +13,8 @@ export const MOVE_TIME_MS = 1000;
 
 export const ANALYSIS_TIME_MS = 200;
 
+export const ENGINE_TIMEOUT_MARGIN_MS = 2_000;
+
 export interface PlyEvaluation {
   ply: number;
   /** centipawn, 백 기준 양수. 메이트는 ±10000으로 클립 */
@@ -29,7 +31,16 @@ export class EngineUnavailableError extends Error {
 @Injectable()
 export class EngineService implements OnModuleInit, OnModuleDestroy {
   engine: stockfish.Engine | null = null;
-  private evaluationQueue: Promise<void> = Promise.resolve();
+  private commandQueue: Promise<void> = Promise.resolve();
+
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const result = this.commandQueue.then(task);
+    this.commandQueue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
 
   async onModuleInit() {
     await this.init();
@@ -84,32 +95,34 @@ export class EngineService implements OnModuleInit, OnModuleDestroy {
   }
 
   async bestMove(sans: string[], difficulty: Difficulty, movetimeMs: number = MOVE_TIME_MS): Promise<string> {
-    const engine = this.requireEngine();
-    const chess = new Chess();
+    return this.enqueue(async () => {
+      const engine = this.requireEngine();
+      const chess = new Chess();
 
-    sans.forEach((san) => chess.move(san, { strict: true }));
+      sans.forEach((san) => chess.move(san, { strict: true }));
 
-    engine.sendCommand(`setoption name UCI_LimitStrength value true`);
-    engine.sendCommand(`setoption name UCI_Elo value ${DIFFICULTY_ELO[difficulty]}`);
-    await this.sendAndWait(engine, "isready", (line) => (line === "readyok" ? true : undefined));
+      engine.sendCommand(`setoption name UCI_LimitStrength value true`);
+      engine.sendCommand(`setoption name UCI_Elo value ${DIFFICULTY_ELO[difficulty]}`);
+      await this.sendAndWait(engine, "isready", (line) => (line === "readyok" ? true : undefined));
 
-    engine.sendCommand(`position fen ${chess.fen()}`);
-    return this.sendAndWait(
-      engine,
-      `go movetime ${movetimeMs}`,
-      (line) => {
-        const match = line.match(
-          /^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)(?:\s+ponder\s+[a-h][1-8][a-h][1-8][qrbn]?)?\s*$/,
-        );
-        if (!match) return undefined;
-        return match[1];
-      },
-      movetimeMs + 2_000,
-    );
+      engine.sendCommand(`position fen ${chess.fen()}`);
+      return this.sendAndWait(
+        engine,
+        `go movetime ${movetimeMs}`,
+        (line) => {
+          const match = line.match(
+            /^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)(?:\s+ponder\s+[a-h][1-8][a-h][1-8][qrbn]?)?\s*$/,
+          );
+          if (!match) return undefined;
+          return match[1];
+        },
+        movetimeMs + ENGINE_TIMEOUT_MARGIN_MS,
+      );
+    });
   }
 
   async evaluate(sans: string[], movetimeMs: number = ANALYSIS_TIME_MS): Promise<PlyEvaluation[]> {
-    const result = this.evaluationQueue.then(async () => {
+    return this.enqueue(async () => {
       const engine = this.requireEngine();
       const chess = new Chess();
       const evaluations: PlyEvaluation[] = [];
@@ -142,7 +155,7 @@ export class EngineService implements OnModuleInit, OnModuleDestroy {
 
             return line.startsWith("bestmove ") ? (latestEvalCp ?? null) : undefined;
           },
-          movetimeMs + 2_000,
+          movetimeMs + ENGINE_TIMEOUT_MARGIN_MS,
         );
 
         if (evalCp === null) throw new EngineUnavailableError(`Stockfish score missing at ply ${index + 1}`);
@@ -151,13 +164,6 @@ export class EngineService implements OnModuleInit, OnModuleDestroy {
 
       return evaluations;
     });
-
-    this.evaluationQueue = result.then(
-      () => undefined,
-      () => undefined,
-    );
-
-    return result;
   }
 
   async dispose(): Promise<void> {

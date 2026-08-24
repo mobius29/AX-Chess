@@ -21,6 +21,8 @@ function classify(cpLoss: number): MoveClassification {
 
 @Injectable()
 export class ReviewService {
+  private readonly pendingRecompute = new Map<string, Promise<ReviewAnalysisRow[]>>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly chess: ChessService,
@@ -41,10 +43,20 @@ export class ReviewService {
     });
 
     if (analysis.length !== sans.length) {
-      analysis = await this.recompute(gameId, sans);
+      analysis = await this.getOrRecompute(gameId, sans);
     }
 
     return toReviewResponse(game, this.chess.initialFen(), fens, analysis);
+  }
+
+  private getOrRecompute(gameId: string, sans: string[]): Promise<ReviewAnalysisRow[]> {
+    const pending = this.pendingRecompute.get(gameId);
+    if (pending) return pending;
+
+    const task = this.recompute(gameId, sans);
+    this.pendingRecompute.set(gameId, task);
+    task.finally(() => this.pendingRecompute.delete(gameId)).catch(() => undefined);
+    return task;
   }
 
   private async recompute(gameId: string, sans: string[]): Promise<ReviewAnalysisRow[]> {
