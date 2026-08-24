@@ -20,11 +20,29 @@ export interface Outcome {
 
 @Injectable()
 export class ChessService {
-  replay(sans: string[]): Chess {
+  private replaySteps(sans: string[], onMove?: (chess: Chess) => void): Chess {
     const chess = new Chess();
-    sans.forEach((san) => chess.move(san, { strict: true }));
+    sans.forEach((san) => {
+      chess.move(san, { strict: true });
+      onMove?.(chess);
+    });
 
     return chess;
+  }
+
+  replay(sans: string[]): Chess {
+    return this.replaySteps(sans);
+  }
+
+  replayWithFens(sans: string[]): string[] {
+    const fens: string[] = [];
+    this.replaySteps(sans, (chess) => fens.push(chess.fen()));
+
+    return fens;
+  }
+
+  initialFen(): string {
+    return new Chess().fen();
   }
 
   applyMove(sans: string[], input: string): AppliedMove {

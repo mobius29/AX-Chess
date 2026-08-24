@@ -31,6 +31,12 @@ export class GameAlreadyFinishedException extends GameApiException {
   }
 }
 
+export class GameNotFinishedException extends GameApiException {
+  constructor() {
+    super("GAME_NOT_FINISHED", "종료된 게임만 복기할 수 있습니다.", HttpStatus.FORBIDDEN);
+  }
+}
+
 export class NotYourTurnException extends GameApiException {
   constructor() {
     super("NOT_YOUR_TURN", "지금은 상대의 차례입니다.", HttpStatus.CONFLICT);

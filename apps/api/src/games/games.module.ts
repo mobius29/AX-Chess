@@ -5,10 +5,11 @@ import { ChessModule } from "../chess/chess.module";
 import { EngineModule } from "../engine/engine.module";
 import { GamesController } from "./games.controller";
 import { GamesService } from "./games.service";
+import { ReviewService } from "./review.service";
 
 @Module({
   imports: [ChessModule, EngineModule],
   controllers: [GamesController],
-  providers: [GamesService, AuthGuard],
+  providers: [GamesService, ReviewService, AuthGuard],
 })
 export class GamesModule {}

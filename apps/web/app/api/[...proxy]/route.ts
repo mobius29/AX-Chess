@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 const API_URL = process.env.API_URL ?? "http://localhost:3000";
 const AUTH_COOKIE = "accessToken";
 
+export const maxDuration = 30;
+
 type Context = { params: Promise<{ proxy: string[] }> };
 
 const proxyRequest = async (request: Request, { params }: Context) => {

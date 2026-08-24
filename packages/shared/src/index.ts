@@ -116,7 +116,7 @@ export interface ReviewResponse {
   color: Color;
   result: GameResult;
   endedReason: EndedReason;
-  initialFen: string;
+  initialFen: string; // blindfold-ok: 복기 전용 초기 포지션
   plies: ReviewPlyDto[];
   analyzedAt: string;
 }

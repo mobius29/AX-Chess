@@ -4,6 +4,7 @@ import type {
   GameListResponse,
   GameStateDto,
   ResignResponse,
+  ReviewResponse,
   SubmitMoveResponse,
 } from "@ax-chess/shared";
 
@@ -12,6 +13,7 @@ import { apiRequest } from "./apiClient";
 export const activeGameQueryKey = ["activeGame"] as const;
 export const gameQueryKey = (id: string) => ["game", id] as const;
 export const gamesListQueryKey = ["games"] as const;
+export const reviewQueryKey = (id: string) => ["review", id] as const;
 
 export const getActiveGame = async () => {
   const response = await apiRequest("get", "games/active");
@@ -47,4 +49,10 @@ export const resignGame = async (id: string) => {
 export const getGames = async (cursor?: string) => {
   const response = await apiRequest("get", "games", cursor ? { searchParams: { cursor } } : undefined);
   return response.json<GameListResponse>();
+};
+
+export const getReview = async (id: string) => {
+  // 첫 조회는 서버가 엔진 평가를 새로 돌려 ~8초 걸릴 수 있다 (프록시 maxDuration 30초)
+  const response = await apiRequest("get", `games/${id}/review`, { timeout: 35_000 });
+  return response.json<ReviewResponse>();
 };

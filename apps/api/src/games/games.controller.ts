@@ -8,11 +8,15 @@ import { CreateGameRequestDTO } from "./dtos/create-game.dto";
 import { ListGamesQueryDTO } from "./dtos/list-games.dto";
 import { SubmitMoveRequestDTO } from "./dtos/submit-move.dto";
 import { GamesService } from "./games.service";
+import { ReviewService } from "./review.service";
 
 @UseGuards(AuthGuard)
 @Controller("games")
 export class GamesController {
-  constructor(private readonly gamesService: GamesService) {}
+  constructor(
+    private readonly gamesService: GamesService,
+    private readonly reviewService: ReviewService,
+  ) {}
 
   @HttpCode(HttpStatus.CREATED)
   @Post()
@@ -54,5 +58,11 @@ export class GamesController {
   @Post(":id/resign")
   resign(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.gamesService.resign(user.sub, id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get(":id/review")
+  getReview(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
+    return this.reviewService.getReview(user.sub, id);
   }
 }
