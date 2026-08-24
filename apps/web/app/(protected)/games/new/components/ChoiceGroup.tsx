@@ -16,12 +16,7 @@ const ChoiceGroup = <T extends string>({ choices, label, onSelect, selected }: C
     <Caption className="text-body-strong mb-3">{label}</Caption>
     <div className="flex flex-wrap gap-2">
       {choices.map(({ label: choiceLabel, value }) => (
-        <OptionButton
-          key={value}
-          label={choiceLabel}
-          onClick={() => onSelect(value)}
-          selected={selected === value}
-        />
+        <OptionButton key={value} label={choiceLabel} onClick={() => onSelect(value)} selected={selected === value} />
       ))}
     </div>
   </div>

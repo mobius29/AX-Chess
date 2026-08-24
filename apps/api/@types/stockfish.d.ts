@@ -12,10 +12,7 @@ declare module "stockfish" {
 
   function stockfish(enginePath?: stockfish.Variant | string): Promise<stockfish.Engine>;
   function stockfish(callback: stockfish.ReadyCallback): stockfish.Engine;
-  function stockfish(
-    enginePath: stockfish.Variant | string,
-    callback: stockfish.ReadyCallback,
-  ): stockfish.Engine;
+  function stockfish(enginePath: stockfish.Variant | string, callback: stockfish.ReadyCallback): stockfish.Engine;
 
   export = stockfish;
 }

@@ -18,15 +18,15 @@ Planning docs live in Notion. Read the relevant Phase doc before starting work.
 
 **Forbidden fields** — `fen` `board` `pieces` `legalMoves` `evaluation` `bestMove` `hint`
 
-| Rule | Rationale |
-|---|---|
-| Never put those fields in an active-game response | PRD 8.1 |
-| Never send legal move lists or engine evaluations to the client | Evaluation is an indirect signal of board state |
-| No FEN column in the database | A value you never store cannot leak |
-| Rebuild the board only in server memory, by replaying the stored SAN list | One source of truth |
-| Illegal-move responses are identical regardless of cause | Free retries plus a detailed message equals a board-scanning tool |
-| Never log FEN, legal moves, raw JWTs, or password hashes | Engine debug output prints FEN verbatim |
-| **Never build a chessboard into the game screen** | The "just a small minimap" temptation is the real risk. Block it in review |
+| Rule                                                                      | Rationale                                                                  |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Never put those fields in an active-game response                         | PRD 8.1                                                                    |
+| Never send legal move lists or engine evaluations to the client           | Evaluation is an indirect signal of board state                            |
+| No FEN column in the database                                             | A value you never store cannot leak                                        |
+| Rebuild the board only in server memory, by replaying the stored SAN list | One source of truth                                                        |
+| Illegal-move responses are identical regardless of cause                  | Free retries plus a detailed message equals a board-scanning tool          |
+| Never log FEN, legal moves, raw JWTs, or password hashes                  | Engine debug output prints FEN verbatim                                    |
+| **Never build a chessboard into the game screen**                         | The "just a small minimap" temptation is the real risk. Block it in review |
 
 **The one exception** — `GET /games/:id/review`. It answers only for finished games and includes FEN. Without the `status = finished` gate, that endpoint becomes the cheating bypass.
 
@@ -91,14 +91,14 @@ Successful responses return the resource object directly, with no wrapper. Failu
 
 **One exception — `GET /games/active`.** Its body can legitimately be `null` (no active game), and Nest/Express sends a raw `null` return as a truly empty body, not JSON `null`, which breaks client-side parsing. It alone replies `{ activeGame: GameStateDto | null }`. Do not extend this wrapper to any other endpoint — if a future endpoint hits the same nullable-body problem, give it its own named wrapper type, don't generalize a shared envelope.
 
-| Situation | Response |
-|---|---|
-| New game while one is active | `409 ACTIVE_GAME_EXISTS` |
-| Move submitted out of turn | `409 NOT_YOUR_TURN` |
-| Illegal move | `422 ILLEGAL_MOVE` plus `illegalCount`, fixed message |
-| Review requested for an active game | `403 GAME_NOT_FINISHED` |
-| Another user's game | `403 FORBIDDEN` |
-| Engine failure | `503 ENGINE_UNAVAILABLE` |
+| Situation                           | Response                                              |
+| ----------------------------------- | ----------------------------------------------------- |
+| New game while one is active        | `409 ACTIVE_GAME_EXISTS`                              |
+| Move submitted out of turn          | `409 NOT_YOUR_TURN`                                   |
+| Illegal move                        | `422 ILLEGAL_MOVE` plus `illegalCount`, fixed message |
+| Review requested for an active game | `403 GAME_NOT_FINISHED`                               |
+| Another user's game                 | `403 FORBIDDEN`                                       |
+| Engine failure                      | `503 ENGINE_UNAVAILABLE`                              |
 
 **On `503` the user's move stays committed.** Rolling back a move the player has already made in their head desyncs their mental board. Recovery goes through `POST /games/:id/ai-move`, which is idempotent. In every other case the user move and the AI move commit in one transaction.
 
