@@ -52,7 +52,11 @@ const AppNav = () => {
         </div>
 
         <div className="relative">
-          <button className="flex items-center gap-3" onClick={() => setMenuOpen((open) => !open)} type="button">
+          <button
+            className="flex cursor-pointer items-center gap-3"
+            onClick={() => setMenuOpen((open) => !open)}
+            type="button"
+          >
             <span className="text-body-3 text-muted">{user.nickname}</span>
             <Avatar nickname={user.nickname} />
           </button>
