@@ -59,7 +59,7 @@ const SignUpPage = () => {
             />
             <FormField
               autoComplete="new-password"
-              hint="8자 이상 · bcrypt로 해싱해 저장합니다"
+              hint="8자 이상"
               label="비밀번호"
               minLength={8}
               name="password"
