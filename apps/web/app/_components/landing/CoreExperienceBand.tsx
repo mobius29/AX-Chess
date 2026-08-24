@@ -1,4 +1,6 @@
 import { Badge } from "@/app/_components/ui/Badge";
+import { BulletList } from "@/app/_components/ui/BulletList";
+import { MoveListPreview } from "@/app/_components/ui/MoveListPreview";
 
 const BULLETS = [
   "불법 수를 두어도 패널티 없음 · 횟수만 기록",
@@ -13,7 +15,7 @@ const MOVE_LIST = [
   { black: "Nf6", no: 4, white: "Ba4" },
   { black: "Be7", no: 5, white: "O-O" },
   { black: "b5", no: 6, white: "Re1" },
-  { black: null, no: 7, white: "Bb3+" },
+  { no: 7, white: "Bb3+" },
 ];
 
 const CoreExperienceBand = () => (
@@ -32,30 +34,12 @@ const CoreExperienceBand = () => (
           사용자가 치러야 할 것은 단 하나, 지금 기물이 어디 있는가입니다.
         </p>
         <div className="bg-hairline-dark h-px w-full" />
-        <ul className="flex w-full flex-col gap-3">
-          {BULLETS.map((bullet) => (
-            <li className="flex items-center gap-3" key={bullet}>
-              <span aria-hidden="true" className="bg-primary size-2.5 shrink-0 rotate-45 rounded-[1px]" />
-              <p className="text-body-3 text-on-dark flex-1">{bullet}</p>
-            </li>
-          ))}
-        </ul>
+        <BulletList items={BULLETS} />
       </div>
 
       <div className="bg-surface-dark-soft border-hairline-dark w-full flex-1 rounded-lg border p-7">
         <p className="text-caption-3 text-notation-muted">대국 화면에 보이는 전부</p>
-        <div className="flex flex-col gap-1 pt-3.5 text-[13px] leading-[1.95]">
-          {MOVE_LIST.map(({ black, no, white }) => {
-            const isLast = black === null;
-            return (
-              <div className="flex items-center" key={no}>
-                <span className="text-notation-muted w-[34px]">{no}.</span>
-                <span className={isLast ? "text-primary flex-1" : "text-on-dark flex-1"}>{white}</span>
-                <span className={isLast ? "text-primary flex-1" : "text-on-dark flex-1"}>{black}</span>
-              </div>
-            );
-          })}
-        </div>
+        <MoveListPreview className="pt-3.5" highlightLast rows={MOVE_LIST} />
         <div className="flex flex-wrap gap-2 pt-[18px]">
           <Badge dot variant="dark">
             체크

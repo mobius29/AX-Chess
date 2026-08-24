@@ -1,5 +1,6 @@
 import { Badge } from "@/app/_components/ui/Badge";
 import { Link } from "@/app/_components/ui/Link";
+import { MoveListPreview } from "@/app/_components/ui/MoveListPreview";
 
 const MOCK_ROWS = [
   { black: "e5", no: 1, white: "e4" },
@@ -48,15 +49,7 @@ const Hero = () => (
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 pt-4 pb-2 text-[13px] leading-[1.95]">
-        {MOCK_ROWS.map(({ black, no, white }) => (
-          <div className="flex items-center" key={no}>
-            <span className="text-notation-muted w-[34px]">{no}.</span>
-            <span className="text-on-dark flex-1">{white}</span>
-            <span className="text-on-dark flex-1">{black}</span>
-          </div>
-        ))}
-      </div>
+      <MoveListPreview className="pt-4 pb-2" rows={MOCK_ROWS} />
 
       <div className="bg-surface-dark-soft border-hairline-dark flex h-11 items-center gap-2.5 rounded-lg border px-3.5">
         <span aria-hidden="true" className="text-primary text-[14px]">
