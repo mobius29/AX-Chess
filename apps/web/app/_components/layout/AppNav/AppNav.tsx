@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -13,7 +13,6 @@ import { currentUserQueryKey, getCurrentUser, logout } from "@/app/_lib/api/auth
 const NAV_LINKS = [
   { href: "/", label: "홈" },
   { href: "/records", label: "내 기록" },
-  { href: "/profile", label: "프로필" },
 ];
 
 const AppNav = () => {

@@ -47,14 +47,16 @@ const Dashboard = () => {
 
   if (!activeGame) {
     return (
-      <section className="mx-auto flex w-full max-w-[560px] flex-1 flex-col justify-center px-5 py-12 md:px-10">
-        <div className="border-hairline bg-surface-card rounded-lg border p-8">
-          <p className="text-title-3 text-ink font-semibold">새 대국을 시작하세요</p>
-          <p className="text-body-2 text-muted mt-2">색과 난이도를 고르면 바로 시작할 수 있습니다.</p>
-          <Link className="mt-6" href="/games/new" variant="primary">
-            새 게임 시작
-          </Link>
-        </div>
+      <section className="mx-auto flex w-full max-w-[640px] flex-1 flex-col justify-center px-5 py-12 md:px-10">
+        <EmptyState
+          action={
+            <Link href="/games/new" variant="primary">
+              새 게임 시작
+            </Link>
+          }
+          body="색과 난이도를 고르면 바로 시작할 수 있습니다."
+          title="새 대국을 시작하세요"
+        />
       </section>
     );
   }

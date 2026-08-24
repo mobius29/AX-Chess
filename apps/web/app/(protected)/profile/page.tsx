@@ -89,7 +89,6 @@ const ProfilePage = () => {
             >
               로그아웃
             </Button>
-            <Caption tone="muted">프로필 수정은 MVP 범위가 아닙니다.</Caption>
           </div>
         </section>
       )}
