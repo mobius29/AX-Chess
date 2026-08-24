@@ -4,6 +4,7 @@ import type { ReviewResponse } from "@ax-chess/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { AppNav } from "@/app/_components/layout/AppNav";
 import { Link } from "@/app/_components/ui/Link";
 import { Body, Title } from "@/app/_components/ui/Typography";
 import type { ApiRequestError } from "@/app/_lib/api/apiClient";
@@ -36,32 +37,49 @@ const ReviewScreen = ({ gameId }: { gameId: string }) => {
     return () => window.removeEventListener("keydown", handleKeydown);
   }, [totalPlies]);
 
-  if (error) return <ReviewLoadError message={error.message} />;
-  if (!review) return <ReviewAnalyzing />;
+  if (error) {
+    return (
+      <>
+        <AppNav />
+        <ReviewLoadError message={error.message} />
+      </>
+    );
+  }
+  if (!review) {
+    return (
+      <>
+        <AppNav />
+        <ReviewAnalyzing />
+      </>
+    );
+  }
 
   const currentMove = currentPly === 0 ? null : (review.plies[currentPly - 1] ?? null);
   const fen = currentMove?.fen ?? review.initialFen;
 
   return (
-    <section className="mx-auto flex w-full max-w-[640px] flex-1 flex-col px-5 py-8 md:px-10">
-      <Link href="/records" size="sm" variant="text">
-        ← 기록으로
-      </Link>
+    <>
+      <AppNav />
+      <section className="mx-auto flex w-full max-w-[640px] flex-1 flex-col px-5 py-8 md:px-10">
+        <Link href="/records" size="sm" variant="text">
+          ← 기록으로
+        </Link>
 
-      <div className="mt-2">
-        <Title level={4} tone="ink">
-          복기 · {COLOR_LABEL[review.color]}
-        </Title>
-        <Body className="mt-1" level={3} tone="muted">
-          {RESULT_LABEL[review.result]} · {ENDED_REASON_LABEL[review.endedReason]}
-        </Body>
-      </div>
+        <div className="mt-2">
+          <Title level={4} tone="ink">
+            복기 · {COLOR_LABEL[review.color]}
+          </Title>
+          <Body className="mt-1" level={3} tone="muted">
+            {RESULT_LABEL[review.result]} · {ENDED_REASON_LABEL[review.endedReason]}
+          </Body>
+        </div>
 
-      <ReviewBoard fen={fen} orientation={review.color} />
-      <ReviewEvalBadge ply={currentMove} />
-      <ReviewControls currentPly={currentPly} onChange={setCurrentPly} totalPlies={totalPlies} />
-      <ReviewMoveList currentPly={currentPly} onSelect={setCurrentPly} plies={review.plies} />
-    </section>
+        <ReviewBoard fen={fen} orientation={review.color} />
+        <ReviewEvalBadge ply={currentMove} />
+        <ReviewControls currentPly={currentPly} onChange={setCurrentPly} totalPlies={totalPlies} />
+        <ReviewMoveList currentPly={currentPly} onSelect={setCurrentPly} plies={review.plies} />
+      </section>
+    </>
   );
 };
 

@@ -2,8 +2,6 @@
 
 import { useEffect, useRef } from "react";
 
-import { Caption } from "@/app/_components/ui/Typography";
-
 type GameMoveListProps = {
   moves: string[];
 };
@@ -15,29 +13,26 @@ const GameMoveList = ({ moves }: GameMoveListProps) => {
     moveListEndRef.current?.scrollIntoView({ block: "nearest" });
   }, [moves.length]);
 
-  const rows: { no: number; white?: string; black?: string }[] = [];
+  const rows: { black?: string; no: number; white: string }[] = [];
   for (let i = 0; i < moves.length; i += 2) {
-    rows.push({ no: i / 2 + 1, white: moves[i], black: moves[i + 1] });
+    rows.push({ black: moves[i + 1], no: i / 2 + 1, white: moves[i] ?? "" });
   }
 
   return (
-    <div className="border-hairline bg-canvas mt-4 max-h-[360px] flex-1 overflow-y-auto rounded-lg border">
+    <div className="flex w-full flex-1 flex-col gap-1 overflow-y-auto text-[17px] leading-[2.15]">
       {rows.length === 0 ? (
-        <Caption level={1} className="text-muted-soft px-5 py-6">
-          아직 둔 수가 없습니다.
-        </Caption>
+        <p className="text-notation-muted text-[14px]">아직 둔 수가 없습니다.</p>
       ) : (
-        <table className="w-full text-[15px]">
-          <tbody>
-            {rows.map(({ no, white, black }) => (
-              <tr className="border-hairline-soft border-b last:border-0" key={no}>
-                <td className="text-muted-soft w-12 py-2 pl-5 text-[13px]">{no}</td>
-                <td className="text-ink py-2 font-medium">{white}</td>
-                <td className="text-ink py-2 pr-5 font-medium">{black}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        rows.map(({ black, no, white }, i) => {
+          const isLast = i === rows.length - 1;
+          return (
+            <div className="flex items-center" key={no}>
+              <span className="text-notation-muted w-[46px] shrink-0 text-[14px]">{no}.</span>
+              <span className={isLast ? "text-primary flex-1" : "text-on-dark flex-1"}>{white}</span>
+              <span className={isLast ? "text-primary flex-1" : "text-on-dark flex-1"}>{black}</span>
+            </div>
+          );
+        })
       )}
       <div ref={moveListEndRef} />
     </div>
