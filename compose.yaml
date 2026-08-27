@@ -1,6 +1,4 @@
 x-dev-volumes: &dev-volumes
-  # 소스는 호스트에서 바로 반영. node_modules/빌드 산출물은 컨테이너 것을 그대로 써서
-  # macOS 호스트의 네이티브 바이너리(argon2 등)로 덮어쓰지 않는다.
   - .:/workspace
   - /workspace/node_modules
   - /workspace/apps/api/node_modules
@@ -31,8 +29,6 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-    # nest --watch가 파일 변경마다 이전 node 프로세스를 죽이고 새로 띄운다.
-    # PID 1(sh)이 신호를 제대로 못 넘겨주면 이전 프로세스가 포트를 안 놓고 EADDRINUSE 남.
     init: true
     volumes: *dev-volumes
 
