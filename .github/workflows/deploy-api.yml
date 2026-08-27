@@ -1,0 +1,83 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/shared/**"
+      - "Dockerfile.prod"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/deploy-api.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REGISTRY: 330407890671.dkr.ecr.ap-southeast-1.amazonaws.com
+  ECR_REPOSITORY: ax-chess-api
+  INSTANCE_ID: i-0f851b5d9e7eb32fd
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::330407890671:role/AX-Chess-GitHub-Deploy-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --file Dockerfile.prod \
+            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA" \
+            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            --push .
+
+      - name: Deploy through SSM
+        env:
+          IMAGE_URI: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          PARAMETERS=$(jq -n --arg image "$IMAGE_URI" '{commands: [
+            "set -eu",
+            "aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 330407890671.dkr.ecr.ap-southeast-1.amazonaws.com",
+            "docker pull " + $image,
+            "docker rm -f ax-chess-api || true",
+            "docker run -d --name ax-chess-api --restart unless-stopped --env-file /opt/ax-chess/api.env -p 127.0.0.1:3000:3000 " + $image,
+            "curl --fail --retry 10 --retry-delay 2 http://127.0.0.1:3000"
+          ]}')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --parameters "$PARAMETERS" \
+            --comment "Deploy AX-Chess API $GITHUB_SHA" \
+            --query Command.CommandId \
+            --output text)
+
+          if ! aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID"; then
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID"
+            exit 1
+          fi
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID"
