@@ -14,7 +14,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN touch apps/api/.env \
   && pnpm --filter api exec prisma generate \
-  && pnpm --filter api build
+  && pnpm --filter api build \
+  && pnpm --filter api deploy --prod --legacy /prod/api
 
 FROM node:24-bookworm-slim AS api
 
@@ -23,11 +24,7 @@ WORKDIR /workspace
 ENV NODE_ENV=production
 ENV PORT=3000
 
-COPY --from=builder /workspace/node_modules ./node_modules
-COPY --from=builder /workspace/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder /workspace/apps/api/dist ./apps/api/dist
-COPY --from=builder /workspace/apps/api/package.json ./apps/api/package.json
-COPY --from=builder /workspace/packages/shared ./packages/shared
+COPY --from=builder /prod/api ./apps/api
 
 USER node
 EXPOSE 3000

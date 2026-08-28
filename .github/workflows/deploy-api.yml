@@ -55,6 +55,7 @@ jobs:
           PARAMETERS=$(jq -n --arg image "$IMAGE_URI" '{commands: [
             "set -eu",
             "aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 330407890671.dkr.ecr.ap-southeast-1.amazonaws.com",
+            "docker image prune -af",
             "docker pull " + $image,
             "docker rm -f ax-chess-api || true",
             "docker run -d --name ax-chess-api --restart unless-stopped --env-file /opt/ax-chess/api.env -p 127.0.0.1:3000:3000 " + $image,
