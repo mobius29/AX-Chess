@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+} from "@nestjs/common";
 
 import { CurrentUser } from "./auth.decorator";
 import type { JwtPayload } from "./auth.decorator";
@@ -30,8 +40,21 @@ export class AuthController {
   @Post("login")
   async signin(@Body() signInReqDTO: SignInRequestDTO) {
     const { email, password } = signInReqDTO;
-    const { accessToken, user } = await this.authService.signIn(email, password);
+    return this.authService.signIn(email, password);
+  }
 
-    return { accessToken, user };
+  @HttpCode(HttpStatus.OK)
+  @Post("refresh")
+  async refresh(@Headers("x-refresh-token") refreshToken?: string) {
+    if (!refreshToken?.trim()) {
+      throw new UnauthorizedException({ code: "UNAUTHORIZED", message: "인증이 필요합니다." });
+    }
+    return this.authService.refresh(refreshToken);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post("logout")
+  async logout(@Headers("x-refresh-token") refreshToken?: string) {
+    await this.authService.signOut(refreshToken);
   }
 }
