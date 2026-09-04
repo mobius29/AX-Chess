@@ -4,6 +4,7 @@
 
 Planning docs live in Notion. Read the relevant Phase doc before starting work.
 
+- [Total](https://app.notion.com/p/mobiuus/AX-Chess-3238d35f445080208069cfee0d2a6aba)
 - [PRD v2](https://app.notion.com/p/3238d35f445080208069cfee0d2a6aba)
 - [API spec](https://app.notion.com/p/3b28d35f44508107bea5f20eee49fe25)
 - [DB design and state diagrams](https://app.notion.com/p/3b28d35f4450816b960df23a45d68a90)
