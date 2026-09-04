@@ -1,9 +1,9 @@
-import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 import argon2 from "argon2";
 
 import { PrismaService } from "../prisma.service";
+import { refreshTokenTtlMsFrom } from "../app.module";
 import { AuthService } from "./auth.service";
 
 describe("AuthService", () => {
@@ -14,7 +14,6 @@ describe("AuthService", () => {
     refreshSession: { create: jest.Mock; findUnique: jest.Mock; updateMany: jest.Mock };
     user: { create: jest.Mock; findUnique: jest.Mock };
   };
-  let config: { getOrThrow: jest.Mock };
   let jwt: { decode: jest.Mock; sign: jest.Mock };
 
   beforeEach(async () => {
@@ -28,14 +27,10 @@ describe("AuthService", () => {
     prisma.$transaction.mockImplementation(async (callback: (tx: typeof prisma) => unknown) => callback(prisma));
 
     jwt = { decode: jest.fn(() => ({ exp: 1_700_000_000 })), sign: jest.fn(() => "access-token") };
-    config = {
-      getOrThrow: jest.fn((key: string) => ({ REFRESH_TOKEN_TTL_DAYS: "7" })[key]),
-    };
-
     const module = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: ConfigService, useValue: config },
+        { provide: "REFRESH_TOKEN_TTL_MS", useValue: 7 * 24 * 60 * 60 * 1000 },
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwt },
       ],
@@ -109,15 +104,6 @@ describe("AuthService", () => {
   });
 
   it("rejects invalid refresh-token TTL configuration at startup", () => {
-    config.getOrThrow.mockImplementation((key: string) => ({ REFRESH_TOKEN_TTL_DAYS: "0" })[key]);
-
-    expect(
-      () =>
-        new AuthService(
-          jwt as unknown as JwtService,
-          prisma as unknown as PrismaService,
-          config as unknown as ConfigService,
-        ),
-    ).toThrow("REFRESH_TOKEN_TTL_DAYS must be a positive integer.");
+    expect(() => refreshTokenTtlMsFrom("0")).toThrow("REFRESH_TOKEN_TTL_DAYS must be a positive integer.");
   });
 });

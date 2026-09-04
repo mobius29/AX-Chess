@@ -1,5 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import argon2 from "argon2";
 
@@ -9,8 +8,6 @@ import { EmailTakenException } from "./exceptions/email-taken.exception";
 import { InvalidCredentialException } from "./exceptions/invalid-credential.exception";
 import { NicknameTakenException } from "./exceptions/nickname-taken.exception";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 interface TokenUser {
   id: string;
   email: string;
@@ -19,15 +16,11 @@ interface TokenUser {
 
 @Injectable()
 export class AuthService {
-  private readonly refreshTokenTtlMs: number;
-
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
-    config: ConfigService,
-  ) {
-    this.refreshTokenTtlMs = this.refreshTokenTtlMsFrom(config.getOrThrow<string>("REFRESH_TOKEN_TTL_DAYS"));
-  }
+    @Inject("REFRESH_TOKEN_TTL_MS") private refreshTokenTtlMs: number,
+  ) {}
 
   async getCurrentUser(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -166,14 +159,6 @@ export class AuthService {
 
   private newRefreshToken() {
     return globalThis.crypto.randomUUID();
-  }
-
-  private refreshTokenTtlMsFrom(value: string) {
-    const days = Number(value);
-    if (!Number.isSafeInteger(days) || days <= 0 || days > Math.floor(Number.MAX_SAFE_INTEGER / DAY_MS)) {
-      throw new Error("REFRESH_TOKEN_TTL_DAYS must be a positive integer.");
-    }
-    return days * DAY_MS;
   }
 
   private unauthorized() {
