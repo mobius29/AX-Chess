@@ -25,6 +25,7 @@ env:
   ECR_REGISTRY: 330407890671.dkr.ecr.ap-southeast-1.amazonaws.com
   ECR_REPOSITORY: ax-chess-api
   INSTANCE_ID: i-0f851b5d9e7eb32fd
+  MAX_IMAGE_SIZE_BYTES: 314572800
 
 jobs:
   deploy:
@@ -48,9 +49,16 @@ jobs:
             --file Dockerfile.prod \
             --cache-from type=gha \
             --cache-to type=gha,mode=max \
-            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA" \
-            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
-            --push .
+            --tag ax-chess-api:ci \
+            --load .
+
+          IMAGE_SIZE=$(docker image inspect --format '{{.Size}}' ax-chess-api:ci)
+          test "$IMAGE_SIZE" -le "$MAX_IMAGE_SIZE_BYTES"
+
+          docker tag ax-chess-api:ci "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          docker tag ax-chess-api:ci "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
       - name: Deploy through SSM
         env:

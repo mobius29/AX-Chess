@@ -2,6 +2,8 @@ packages:
   - "apps/*"
   - "packages/*"
 
+injectWorkspacePackages: true
+
 allowBuilds:
   # WASM 엔진 바이너리 준비
   "@prisma/engines": true
