@@ -28,8 +28,11 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      DATABASE_URL_UNPOOLED: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:?ACCESS_TOKEN_TTL is required}
+      CI: "true"
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      PNPM_CONFIG_CONFIRM_MODULES_PURGE: "false"
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:?REFRESH_TOKEN_TTL_DAYS is required}
     init: true
     volumes: *dev-volumes
@@ -41,6 +44,8 @@ services:
       - api
     environment:
       API_URL: http://api:3000
+      CI: "true"
+      PNPM_CONFIG_CONFIRM_MODULES_PURGE: "false"
     init: true
     ports:
       - "${WEB_PORT:?WEB_PORT is required}:3000"
