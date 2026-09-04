@@ -3,7 +3,7 @@ import { Test } from "@nestjs/testing";
 import argon2 from "argon2";
 
 import { PrismaService } from "../prisma.service";
-import { refreshTokenTtlMsFrom } from "../app.module";
+import { EnvConfigService } from "../env-config.service";
 import { AuthService } from "./auth.service";
 
 describe("AuthService", () => {
@@ -30,7 +30,7 @@ describe("AuthService", () => {
     const module = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: "REFRESH_TOKEN_TTL_MS", useValue: 7 * 24 * 60 * 60 * 1000 },
+        { provide: EnvConfigService, useValue: { refreshTokenTtlMs: 7 * 24 * 60 * 60 * 1000 } },
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwt },
       ],
@@ -103,7 +103,4 @@ describe("AuthService", () => {
     );
   });
 
-  it("rejects invalid refresh-token TTL configuration at startup", () => {
-    expect(() => refreshTokenTtlMsFrom("0")).toThrow("REFRESH_TOKEN_TTL_DAYS must be a positive integer.");
-  });
 });

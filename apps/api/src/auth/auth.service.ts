@@ -1,8 +1,9 @@
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import argon2 from "argon2";
 
 import { Prisma } from "../../generated/prisma/client";
+import { EnvConfigService } from "../env-config.service";
 import { PrismaService } from "../prisma.service";
 import { EmailTakenException } from "./exceptions/email-taken.exception";
 import { InvalidCredentialException } from "./exceptions/invalid-credential.exception";
@@ -19,7 +20,7 @@ export class AuthService {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
-    @Inject("REFRESH_TOKEN_TTL_MS") private refreshTokenTtlMs: number,
+    private env: EnvConfigService,
   ) {}
 
   async getCurrentUser(userId: string) {
@@ -135,7 +136,7 @@ export class AuthService {
 
   private async issueTokens(user: TokenUser) {
     const refreshTokenSecret = this.newRefreshToken();
-    const refreshExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
+    const refreshExpiresAt = new Date(Date.now() + this.env.refreshTokenTtlMs);
     const session = await this.prisma.refreshSession.create({
       data: { expiresAt: refreshExpiresAt, tokenHash: await argon2.hash(refreshTokenSecret), userId: user.id },
     });
