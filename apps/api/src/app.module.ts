@@ -17,7 +17,7 @@ const accessTokenTtlFrom = (value: string): NonNullable<JwtSignOptions["expiresI
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ envFilePath: [".env", "../../.env"], isGlobal: true }),
     JwtModule.registerAsync({
       global: true,
       useFactory: (configService: ConfigService) => ({
