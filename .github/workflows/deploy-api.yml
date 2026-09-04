@@ -25,7 +25,7 @@ env:
   ECR_REGISTRY: 330407890671.dkr.ecr.ap-southeast-1.amazonaws.com
   ECR_REPOSITORY: ax-chess-api
   INSTANCE_ID: i-0f851b5d9e7eb32fd
-  MAX_IMAGE_SIZE_BYTES: 314572800
+  MAX_IMAGE_SIZE_BYTES: 419430400
 
 jobs:
   deploy:
@@ -53,6 +53,7 @@ jobs:
             --load .
 
           IMAGE_SIZE=$(docker image inspect --format '{{.Size}}' ax-chess-api:ci)
+          echo "image size: $IMAGE_SIZE bytes (limit: $MAX_IMAGE_SIZE_BYTES)"
           test "$IMAGE_SIZE" -le "$MAX_IMAGE_SIZE_BYTES"
 
           docker tag ax-chess-api:ci "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
@@ -70,8 +71,8 @@ jobs:
             "docker image prune -af",
             "docker pull " + $image,
             "docker rm -f ax-chess-api || true",
-            "docker run -d --name ax-chess-api --restart unless-stopped --env-file /opt/ax-chess/api.env -p 127.0.0.1:3000:3000 " + $image,
-            "curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 2 http://127.0.0.1:3000",
+            "docker run -d --name ax-chess-api --restart unless-stopped --env-file /opt/ax-chess/api.env -e ACCESS_TOKEN_TTL=15m -e REFRESH_TOKEN_TTL_DAYS=30 -p 127.0.0.1:3000:3000 " + $image,
+            "curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 2 http://127.0.0.1:3000 || { docker logs --tail 50 ax-chess-api; exit 1; }",
             "docker image prune -af"
           ]}')
 

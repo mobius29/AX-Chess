@@ -14,7 +14,7 @@ COPY . .
 RUN touch apps/api/.env \
   && pnpm --filter api exec prisma generate \
   && pnpm --filter api build \
-  && pnpm --filter api deploy --prod /prod/api \
+  && pnpm --filter api deploy --prod --no-optional /prod/api \
   && find /prod/api/node_modules/.pnpm/stockfish@*/node_modules/stockfish/bin -type f ! \( -name '*-lite-single.js' -o -name '*-lite-single.wasm' \) -delete
 
 FROM node:24-bookworm-slim AS api
