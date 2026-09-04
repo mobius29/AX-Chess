@@ -71,7 +71,7 @@ jobs:
             "docker image prune -af",
             "docker pull " + $image,
             "docker rm -f ax-chess-api || true",
-            "docker run -d --name ax-chess-api --restart unless-stopped --env-file /opt/ax-chess/api.env -p 127.0.0.1:3000:3000 " + $image,
+            "docker run -d --name ax-chess-api --restart unless-stopped --env-file /opt/ax-chess/api.env -e ACCESS_TOKEN_TTL=15m -e REFRESH_TOKEN_TTL_DAYS=30 -p 127.0.0.1:3000:3000 " + $image,
             "curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 2 http://127.0.0.1:3000",
             "docker image prune -af"
           ]}')
