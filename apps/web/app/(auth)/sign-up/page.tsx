@@ -11,7 +11,7 @@ import { Button } from "@/app/_components/ui/Button";
 import { Form, FormField } from "@/app/_components/ui/Form";
 import { Link } from "@/app/_components/ui/Link";
 import { Caption } from "@/app/_components/ui/Typography";
-import { apiRequest } from "@/app/_lib/api/apiClient";
+import { apiRequest } from "@/app/_lib/api/apiRequest";
 
 const BULLETS = ["중단한 대국 이어하기", "종료된 대국 복기 · 엔진 분석", "실착수와 정확도 추적"];
 

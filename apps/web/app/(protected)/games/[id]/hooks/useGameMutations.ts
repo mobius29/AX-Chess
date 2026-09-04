@@ -1,7 +1,7 @@
 import type { ResignResponse, SubmitMoveResponse } from "@ax-chess/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { ApiRequestError } from "@/app/_lib/api/apiClient";
+import type { ApiRequestError } from "@/app/_lib/api/apiRequest";
 import { activeGameQueryKey, gameQueryKey, resignGame, retryAiMove, submitMove } from "@/app/_lib/api/games";
 
 type UseGameMutationsOptions = {

@@ -1,8 +1,15 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import {
+  ACCESS_TOKEN_COOKIE,
+  deleteSessionCookies,
+  isTokenResponse,
+  REFRESH_TOKEN_COOKIE,
+  setSessionCookies,
+} from "@/app/_lib/auth/sessionCookies";
+
 const API_URL = process.env.API_URL ?? "http://localhost:3000";
-const AUTH_COOKIE = "accessToken";
 
 export const maxDuration = 30;
 
@@ -12,14 +19,9 @@ const proxyRequest = async (request: Request, { params }: Context) => {
   const { proxy } = await params;
   const path = proxy.map(encodeURIComponent).join("/");
 
-  if (request.method === "POST" && path === "auth/logout") {
-    const response = new NextResponse(null, { status: 204 });
-    response.cookies.delete(AUTH_COOKIE);
-    return response;
-  }
-
   const cookieStore = await cookies();
-  const token = cookieStore.get(AUTH_COOKIE)?.value;
+  const token = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
   const { search } = new URL(request.url);
   const upstream = await fetch(`${API_URL.replace(/\/$/, "")}/${path}${search}`, {
     body: request.method === "GET" ? undefined : await request.text(),
@@ -27,31 +29,52 @@ const proxyRequest = async (request: Request, { params }: Context) => {
     headers: {
       "content-type": request.headers.get("content-type") ?? "application/json",
       ...(token && { authorization: `Bearer ${token}` }),
+      ...((path === "auth/refresh" || path === "auth/logout") && refreshToken && { "x-refresh-token": refreshToken }),
     },
     method: request.method,
   });
 
-  if (path !== "auth/login" || !upstream.ok) {
-    return new NextResponse(upstream.body, {
+  if (path === "auth/logout") {
+    const response = new NextResponse(upstream.body, { status: upstream.status });
+    deleteSessionCookies(response);
+    return response;
+  }
+
+  if ((path !== "auth/login" && path !== "auth/refresh") || !upstream.ok) {
+    const response = new NextResponse(upstream.body, {
       headers: { "content-type": upstream.headers.get("content-type") ?? "application/json" },
       status: upstream.status,
     });
+    if (path === "auth/refresh") deleteSessionCookies(response);
+    return response;
   }
 
-  const { accessToken, ...body }: { accessToken?: unknown; [key: string]: unknown } = await upstream.json();
+  const tokenResponse: unknown = await upstream.json();
 
-  if (typeof accessToken !== "string") {
-    return NextResponse.json({ code: "UNAUTHORIZED", message: "로그인 응답이 올바르지 않습니다." }, { status: 502 });
+  if (!isTokenResponse(tokenResponse)) {
+    const response = NextResponse.json(
+      { code: "UNAUTHORIZED", message: "로그인 응답이 올바르지 않습니다." },
+      { status: 502 },
+    );
+    if (path === "auth/refresh") deleteSessionCookies(response);
+    return response;
   }
 
+  const {
+    accessToken: _accessToken,
+    refreshExpiresAt: _refreshExpiresAt,
+    refreshToken: _refreshToken,
+    ...body
+  } = tokenResponse;
   const response = NextResponse.json(body, { status: upstream.status });
-  response.cookies.set(AUTH_COOKIE, accessToken, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24 * 7,
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
+  if (!setSessionCookies(response, tokenResponse)) {
+    const invalidResponse = NextResponse.json(
+      { code: "UNAUTHORIZED", message: "로그인 응답이 올바르지 않습니다." },
+      { status: 502 },
+    );
+    if (path === "auth/refresh") deleteSessionCookies(invalidResponse);
+    return invalidResponse;
+  }
   return response;
 };
 

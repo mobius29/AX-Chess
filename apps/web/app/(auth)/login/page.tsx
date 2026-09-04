@@ -11,7 +11,7 @@ import { Form, FormField } from "@/app/_components/ui/Form";
 import { Link } from "@/app/_components/ui/Link";
 import { MoveListPreview } from "@/app/_components/ui/MoveListPreview";
 import { Caption } from "@/app/_components/ui/Typography";
-import { apiRequest } from "@/app/_lib/api/apiClient";
+import { apiRequest } from "@/app/_lib/api/apiRequest";
 import { currentUserQueryKey } from "@/app/_lib/api/auth";
 
 const MOVE_LIST = [

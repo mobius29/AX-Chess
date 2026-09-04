@@ -8,7 +8,7 @@ import type {
   SubmitMoveResponse,
 } from "@ax-chess/shared";
 
-import { apiRequest } from "./apiClient";
+import { apiRequest } from "./apiRequest";
 
 export const activeGameQueryKey = ["activeGame"] as const;
 export const gameQueryKey = (id: string) => ["game", id] as const;

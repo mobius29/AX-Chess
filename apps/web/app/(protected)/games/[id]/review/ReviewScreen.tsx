@@ -9,7 +9,7 @@ import { Badge } from "@/app/_components/ui/Badge";
 import { Link } from "@/app/_components/ui/Link";
 import { Stat } from "@/app/_components/ui/Stat";
 import { Title } from "@/app/_components/ui/Typography";
-import type { ApiRequestError } from "@/app/_lib/api/apiClient";
+import type { ApiRequestError } from "@/app/_lib/api/apiRequest";
 import { getReview, reviewQueryKey } from "@/app/_lib/api/games";
 import { COLOR_LABEL, ENDED_REASON_LABEL, RESULT_LABEL } from "@/app/_lib/labels";
 
