@@ -12,9 +12,11 @@ import {
   ReviewBand,
 } from "@/app/_components/landing";
 import { AppNav } from "@/app/_components/layout/AppNav";
+import { hasSession } from "@/app/_lib/auth/sessionCookies";
 
 const Home = async () => {
-  const isLoggedIn = (await cookies()).has("accessToken");
+  const cookieStore = await cookies();
+  const isLoggedIn = hasSession(cookieStore);
 
   if (isLoggedIn) {
     return (

@@ -1,6 +1,6 @@
 import type { UserDto } from "@ax-chess/shared";
 
-import { apiRequest } from "./apiClient";
+import { apiRequest } from "./apiRequest";
 
 export const currentUserQueryKey = ["currentUser"] as const;
 

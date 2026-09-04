@@ -3,16 +3,24 @@ import { JwtService } from "@nestjs/jwt";
 import argon2 from "argon2";
 
 import { Prisma } from "../../generated/prisma/client";
+import { EnvConfigService } from "../env-config.service";
 import { PrismaService } from "../prisma.service";
 import { EmailTakenException } from "./exceptions/email-taken.exception";
 import { InvalidCredentialException } from "./exceptions/invalid-credential.exception";
 import { NicknameTakenException } from "./exceptions/nickname-taken.exception";
+
+interface TokenUser {
+  id: string;
+  email: string;
+  nickname: string;
+}
 
 @Injectable()
 export class AuthService {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private env: EnvConfigService,
   ) {}
 
   async getCurrentUser(userId: string) {
@@ -76,10 +84,85 @@ export class AuthService {
     const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) throw new InvalidCredentialException();
 
-    const payload = { sub: user.id, email: user.email };
+    return { ...(await this.issueTokens(user)), user: { id: user.id, nickname: user.nickname } };
+  }
+
+  async refresh(refreshToken: string) {
+    const now = new Date();
+    const [sessionId, tokenSecret, ...rest] = refreshToken.split(".");
+    if (!sessionId || !tokenSecret || rest.length) throw this.unauthorized();
+
+    const session = await this.prisma.refreshSession.findUnique({
+      include: { user: { select: { id: true, email: true, nickname: true } } },
+      where: { id: sessionId },
+    });
+
+    if (!session || session.revokedAt || session.expiresAt <= now || !(await argon2.verify(session.tokenHash, tokenSecret))) {
+      throw this.unauthorized();
+    }
+
+    const replacementSecret = this.newRefreshToken();
+    const replacementHash = await argon2.hash(replacementSecret);
+    const tokens = await this.prisma.$transaction(async (tx) => {
+      const revoked = await tx.refreshSession.updateMany({
+        data: { revokedAt: now },
+        where: { expiresAt: { gt: now }, id: session.id, revokedAt: null },
+      });
+      if (revoked.count !== 1) throw this.unauthorized();
+
+      const replacement = await tx.refreshSession.create({
+        data: { expiresAt: session.expiresAt, tokenHash: replacementHash, userId: session.userId },
+      });
+
+      return this.tokensFor(session.user, `${replacement.id}.${replacementSecret}`, session.expiresAt);
+    });
+
+    return tokens;
+  }
+
+  async signOut(refreshToken?: string) {
+    if (!refreshToken) return;
+    const [sessionId, tokenSecret, ...rest] = refreshToken.split(".");
+    if (!sessionId || !tokenSecret || rest.length) return;
+
+    const session = await this.prisma.refreshSession.findUnique({ where: { id: sessionId } });
+    if (!session || !(await argon2.verify(session.tokenHash, tokenSecret))) return;
+
+    await this.prisma.refreshSession.updateMany({
+      data: { revokedAt: new Date() },
+      where: { id: sessionId, revokedAt: null },
+    });
+  }
+
+  private async issueTokens(user: TokenUser) {
+    const refreshTokenSecret = this.newRefreshToken();
+    const refreshExpiresAt = new Date(Date.now() + this.env.refreshTokenTtlMs);
+    const session = await this.prisma.refreshSession.create({
+      data: { expiresAt: refreshExpiresAt, tokenHash: await argon2.hash(refreshTokenSecret), userId: user.id },
+    });
+    return this.tokensFor(user, `${session.id}.${refreshTokenSecret}`, refreshExpiresAt);
+  }
+
+  private tokensFor(user: TokenUser, refreshToken: string, refreshExpiresAt: Date) {
+    const accessToken = this.jwtService.sign({ sub: user.id, email: user.email });
+    const payload = this.jwtService.decode(accessToken);
+    if (!payload || typeof payload === "string" || typeof payload.exp !== "number") {
+      throw new Error("Access token must include an expiry.");
+    }
+
     return {
-      accessToken: this.jwtService.sign(payload),
-      user: { id: user.id, nickname: user.nickname },
+      accessExpiresAt: new Date(payload.exp * 1000),
+      accessToken,
+      refreshExpiresAt,
+      refreshToken,
     };
+  }
+
+  private newRefreshToken() {
+    return globalThis.crypto.randomUUID();
+  }
+
+  private unauthorized() {
+    return new UnauthorizedException({ code: "UNAUTHORIZED", message: "인증이 필요합니다." });
   }
 }
