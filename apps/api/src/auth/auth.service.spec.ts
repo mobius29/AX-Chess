@@ -1,8 +1,7 @@
-import { createHash } from "crypto";
-
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
+import argon2 from "argon2";
 
 import { PrismaService } from "../prisma.service";
 import { AuthService } from "./auth.service";
@@ -25,6 +24,7 @@ describe("AuthService", () => {
       refreshSession: { create: jest.fn(), findUnique: jest.fn(), updateMany: jest.fn() },
       $transaction: jest.fn(),
     };
+    prisma.refreshSession.create.mockResolvedValue({ id: "session-2" });
     prisma.$transaction.mockImplementation(async (callback: (tx: typeof prisma) => unknown) => callback(prisma));
 
     jwt = { decode: jest.fn(() => ({ exp: 1_700_000_000 })), sign: jest.fn(() => "access-token") };
@@ -55,15 +55,16 @@ describe("AuthService", () => {
       id: "session-1",
       revokedAt: null,
       user: { email: "user@example.com", id: "user-1", nickname: "user" },
+      tokenHash: await argon2.hash("old-refresh-token"),
       userId: "user-1",
     });
     prisma.refreshSession.updateMany.mockResolvedValue({ count: 1 });
 
-    const tokens = await service.refresh("old-refresh-token");
+    const tokens = await service.refresh("session-1.old-refresh-token");
 
     expect(tokens.accessToken).toBe("access-token");
     expect(tokens.accessExpiresAt).toEqual(new Date(1_700_000_000_000));
-    expect(tokens.refreshToken).not.toBe("old-refresh-token");
+    expect(tokens.refreshToken).toMatch(/^session-2\./);
     expect(tokens.refreshExpiresAt).toEqual(expiresAt);
     expect(prisma.refreshSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ id: "session-1", revokedAt: null }) }),
@@ -73,9 +74,7 @@ describe("AuthService", () => {
         data: expect.objectContaining({ expiresAt, tokenHash: expect.any(String), userId: "user-1" }),
       }),
     );
-    expect(prisma.refreshSession.create.mock.calls[0][0].data.tokenHash).not.toBe(
-      createHash("sha256").update("old-refresh-token").digest("hex"),
-    );
+    expect(await argon2.verify(prisma.refreshSession.create.mock.calls[0][0].data.tokenHash, tokens.refreshToken.split(".")[1]!)).toBe(true);
     expect(jwt.sign).toHaveBeenCalledWith({ email: "user@example.com", sub: "user-1" });
   });
 
@@ -85,22 +84,25 @@ describe("AuthService", () => {
       id: "session-1",
       revokedAt: null,
       user: { email: "user@example.com", id: "user-1", nickname: "user" },
+      tokenHash: await argon2.hash("old-refresh-token"),
       userId: "user-1",
     });
     prisma.refreshSession.updateMany.mockResolvedValue({ count: 0 });
 
-    await expect(service.refresh("old-refresh-token")).rejects.toMatchObject({ status: 401 });
+    await expect(service.refresh("session-1.old-refresh-token")).rejects.toMatchObject({ status: 401 });
     expect(prisma.refreshSession.create).not.toHaveBeenCalled();
   });
 
   it("revokes only the matching active session on logout", async () => {
-    await service.signOut("refresh-token");
+    prisma.refreshSession.findUnique.mockResolvedValue({ tokenHash: await argon2.hash("refresh-token") });
+
+    await service.signOut("session-1.refresh-token");
 
     expect(prisma.refreshSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          id: "session-1",
           revokedAt: null,
-          tokenHash: createHash("sha256").update("refresh-token").digest("hex"),
         },
       }),
     );

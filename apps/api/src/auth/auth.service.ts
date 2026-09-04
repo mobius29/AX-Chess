@@ -1,5 +1,3 @@
-import { createHash, randomBytes } from "crypto";
-
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -97,15 +95,20 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     const now = new Date();
+    const [sessionId, tokenSecret, ...rest] = refreshToken.split(".");
+    if (!sessionId || !tokenSecret || rest.length) throw this.unauthorized();
+
     const session = await this.prisma.refreshSession.findUnique({
       include: { user: { select: { id: true, email: true, nickname: true } } },
-      where: { tokenHash: this.hashRefreshToken(refreshToken) },
+      where: { id: sessionId },
     });
 
-    if (!session || session.revokedAt || session.expiresAt <= now) throw this.unauthorized();
+    if (!session || session.revokedAt || session.expiresAt <= now || !(await argon2.verify(session.tokenHash, tokenSecret))) {
+      throw this.unauthorized();
+    }
 
-    const refreshTokenReplacement = this.newRefreshToken();
-    const tokenHash = this.hashRefreshToken(refreshTokenReplacement);
+    const replacementSecret = this.newRefreshToken();
+    const replacementHash = await argon2.hash(replacementSecret);
     const tokens = await this.prisma.$transaction(async (tx) => {
       const revoked = await tx.refreshSession.updateMany({
         data: { revokedAt: now },
@@ -113,11 +116,11 @@ export class AuthService {
       });
       if (revoked.count !== 1) throw this.unauthorized();
 
-      await tx.refreshSession.create({
-        data: { expiresAt: session.expiresAt, tokenHash, userId: session.userId },
+      const replacement = await tx.refreshSession.create({
+        data: { expiresAt: session.expiresAt, tokenHash: replacementHash, userId: session.userId },
       });
 
-      return this.tokensFor(session.user, refreshTokenReplacement, session.expiresAt);
+      return this.tokensFor(session.user, `${replacement.id}.${replacementSecret}`, session.expiresAt);
     });
 
     return tokens;
@@ -125,20 +128,25 @@ export class AuthService {
 
   async signOut(refreshToken?: string) {
     if (!refreshToken) return;
+    const [sessionId, tokenSecret, ...rest] = refreshToken.split(".");
+    if (!sessionId || !tokenSecret || rest.length) return;
+
+    const session = await this.prisma.refreshSession.findUnique({ where: { id: sessionId } });
+    if (!session || !(await argon2.verify(session.tokenHash, tokenSecret))) return;
 
     await this.prisma.refreshSession.updateMany({
       data: { revokedAt: new Date() },
-      where: { revokedAt: null, tokenHash: this.hashRefreshToken(refreshToken) },
+      where: { id: sessionId, revokedAt: null },
     });
   }
 
   private async issueTokens(user: TokenUser) {
-    const refreshToken = this.newRefreshToken();
+    const refreshTokenSecret = this.newRefreshToken();
     const refreshExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
-    await this.prisma.refreshSession.create({
-      data: { expiresAt: refreshExpiresAt, tokenHash: this.hashRefreshToken(refreshToken), userId: user.id },
+    const session = await this.prisma.refreshSession.create({
+      data: { expiresAt: refreshExpiresAt, tokenHash: await argon2.hash(refreshTokenSecret), userId: user.id },
     });
-    return this.tokensFor(user, refreshToken, refreshExpiresAt);
+    return this.tokensFor(user, `${session.id}.${refreshTokenSecret}`, refreshExpiresAt);
   }
 
   private tokensFor(user: TokenUser, refreshToken: string, refreshExpiresAt: Date) {
@@ -157,11 +165,7 @@ export class AuthService {
   }
 
   private newRefreshToken() {
-    return randomBytes(32).toString("base64url");
-  }
-
-  private hashRefreshToken(refreshToken: string) {
-    return createHash("sha256").update(refreshToken).digest("hex");
+    return globalThis.crypto.randomUUID();
   }
 
   private refreshTokenTtlMsFrom(value: string) {
