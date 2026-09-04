@@ -4,6 +4,7 @@ export const ACCESS_TOKEN_COOKIE = "accessToken";
 export const REFRESH_TOKEN_COOKIE = "refreshToken";
 
 interface TokenResponse {
+  accessExpiresAt: string;
   accessToken: string;
   refreshExpiresAt: string;
   refreshToken: string;
@@ -23,28 +24,29 @@ export const deleteSessionCookies = (response: NextResponse) => {
 };
 
 export const setSessionCookies = (response: NextResponse, tokens: TokenResponse) => {
+  const accessExpiresAt = new Date(tokens.accessExpiresAt);
   const refreshExpiresAt = new Date(tokens.refreshExpiresAt);
-  const maxAge = Math.floor((refreshExpiresAt.getTime() - Date.now()) / 1000);
-  if (!Number.isFinite(maxAge) || maxAge <= 0) return false;
+  if (Number.isNaN(accessExpiresAt.getTime()) || Number.isNaN(refreshExpiresAt.getTime())) return false;
 
   const options = {
     httpOnly: true,
-    maxAge,
     path: "/",
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
   };
-  response.cookies.set(ACCESS_TOKEN_COOKIE, tokens.accessToken, options);
-  response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refreshToken, options);
+  response.cookies.set(ACCESS_TOKEN_COOKIE, tokens.accessToken, { ...options, expires: accessExpiresAt });
+  response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refreshToken, { ...options, expires: refreshExpiresAt });
   return true;
 };
 
 export const isTokenResponse = (value: unknown): value is TokenResponse =>
   typeof value === "object" &&
   value !== null &&
+  "accessExpiresAt" in value &&
   "accessToken" in value &&
   "refreshToken" in value &&
   "refreshExpiresAt" in value &&
+  typeof value.accessExpiresAt === "string" &&
   typeof value.accessToken === "string" &&
   typeof value.refreshToken === "string" &&
   typeof value.refreshExpiresAt === "string";

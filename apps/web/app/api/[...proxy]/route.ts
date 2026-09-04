@@ -61,6 +61,7 @@ const proxyRequest = async (request: Request, { params }: Context) => {
   }
 
   const {
+    accessExpiresAt: _accessExpiresAt,
     accessToken: _accessToken,
     refreshExpiresAt: _refreshExpiresAt,
     refreshToken: _refreshToken,

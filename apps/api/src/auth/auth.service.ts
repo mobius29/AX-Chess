@@ -142,8 +142,15 @@ export class AuthService {
   }
 
   private tokensFor(user: TokenUser, refreshToken: string, refreshExpiresAt: Date) {
+    const accessToken = this.jwtService.sign({ sub: user.id, email: user.email });
+    const payload = this.jwtService.decode(accessToken);
+    if (!payload || typeof payload === "string" || typeof payload.exp !== "number") {
+      throw new Error("Access token must include an expiry.");
+    }
+
     return {
-      accessToken: this.jwtService.sign({ sub: user.id, email: user.email }),
+      accessExpiresAt: new Date(payload.exp * 1000),
+      accessToken,
       refreshExpiresAt,
       refreshToken,
     };

@@ -16,7 +16,7 @@ describe("AuthService", () => {
     user: { create: jest.Mock; findUnique: jest.Mock };
   };
   let config: { getOrThrow: jest.Mock };
-  let jwt: { sign: jest.Mock };
+  let jwt: { decode: jest.Mock; sign: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -27,7 +27,7 @@ describe("AuthService", () => {
     };
     prisma.$transaction.mockImplementation(async (callback: (tx: typeof prisma) => unknown) => callback(prisma));
 
-    jwt = { sign: jest.fn(() => "access-token") };
+    jwt = { decode: jest.fn(() => ({ exp: 1_700_000_000 })), sign: jest.fn(() => "access-token") };
     config = {
       getOrThrow: jest.fn((key: string) => ({ REFRESH_TOKEN_TTL_DAYS: "7" })[key]),
     };
@@ -62,6 +62,7 @@ describe("AuthService", () => {
     const tokens = await service.refresh("old-refresh-token");
 
     expect(tokens.accessToken).toBe("access-token");
+    expect(tokens.accessExpiresAt).toEqual(new Date(1_700_000_000_000));
     expect(tokens.refreshToken).not.toBe("old-refresh-token");
     expect(tokens.refreshExpiresAt).toEqual(expiresAt);
     expect(prisma.refreshSession.updateMany).toHaveBeenCalledWith(
