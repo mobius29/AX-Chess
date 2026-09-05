@@ -25,7 +25,13 @@ export class AuthService {
 
   async getCurrentUser(userId: string) {
     const user = await this.prisma.user.findUnique({
-      select: { id: true, email: true, nickname: true },
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        passwordHash: true,
+        oauthAccounts: { select: { provider: true } },
+      },
       where: { id: userId },
     });
     if (!user) throw new UnauthorizedException({ code: "UNAUTHORIZED", message: "존재하지 않는 사용자입니다." });
@@ -49,7 +55,13 @@ export class AuthService {
       { total: 0, wins: 0, losses: 0, draws: 0 },
     );
 
-    return { ...user, stats };
+    const { passwordHash, oauthAccounts, ...profile } = user;
+    return {
+      ...profile,
+      stats,
+      hasPassword: Boolean(passwordHash),
+      connectedProviders: oauthAccounts.map(({ provider }) => provider),
+    };
   }
 
   async createUser(email: string, nickname: string, password: string) {
@@ -79,7 +91,7 @@ export class AuthService {
       select: { id: true, email: true, nickname: true, passwordHash: true },
       where: { email },
     });
-    if (!user) throw new InvalidCredentialException();
+    if (!user?.passwordHash) throw new InvalidCredentialException();
 
     const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) throw new InvalidCredentialException();
@@ -97,7 +109,12 @@ export class AuthService {
       where: { id: sessionId },
     });
 
-    if (!session || session.revokedAt || session.expiresAt <= now || !(await argon2.verify(session.tokenHash, tokenSecret))) {
+    if (
+      !session ||
+      session.revokedAt ||
+      session.expiresAt <= now ||
+      !(await argon2.verify(session.tokenHash, tokenSecret))
+    ) {
       throw this.unauthorized();
     }
 
@@ -111,10 +128,20 @@ export class AuthService {
       if (revoked.count !== 1) throw this.unauthorized();
 
       const replacement = await tx.refreshSession.create({
-        data: { expiresAt: session.expiresAt, tokenHash: replacementHash, userId: session.userId },
+        data: {
+          expiresAt: session.expiresAt,
+          tokenHash: replacementHash,
+          userId: session.userId,
+          oauthAuthenticatedAt: session.oauthAuthenticatedAt,
+        },
       });
 
-      return this.tokensFor(session.user, `${replacement.id}.${replacementSecret}`, session.expiresAt);
+      return this.tokensFor(
+        session.user,
+        `${replacement.id}.${replacementSecret}`,
+        session.expiresAt,
+        session.oauthAuthenticatedAt?.getTime(),
+      );
     });
 
     return tokens;
@@ -134,17 +161,26 @@ export class AuthService {
     });
   }
 
-  private async issueTokens(user: TokenUser) {
+  async issueTokens(user: TokenUser, oauthAuthenticatedAt?: number) {
     const refreshTokenSecret = this.newRefreshToken();
     const refreshExpiresAt = new Date(Date.now() + this.env.refreshTokenTtlMs);
     const session = await this.prisma.refreshSession.create({
-      data: { expiresAt: refreshExpiresAt, tokenHash: await argon2.hash(refreshTokenSecret), userId: user.id },
+      data: {
+        expiresAt: refreshExpiresAt,
+        tokenHash: await argon2.hash(refreshTokenSecret),
+        userId: user.id,
+        oauthAuthenticatedAt: oauthAuthenticatedAt === undefined ? null : new Date(oauthAuthenticatedAt),
+      },
     });
-    return this.tokensFor(user, `${session.id}.${refreshTokenSecret}`, refreshExpiresAt);
+    return this.tokensFor(user, `${session.id}.${refreshTokenSecret}`, refreshExpiresAt, oauthAuthenticatedAt);
   }
 
-  private tokensFor(user: TokenUser, refreshToken: string, refreshExpiresAt: Date) {
-    const accessToken = this.jwtService.sign({ sub: user.id, email: user.email });
+  private tokensFor(user: TokenUser, refreshToken: string, refreshExpiresAt: Date, oauthAuthenticatedAt?: number) {
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      ...(oauthAuthenticatedAt && { oauthAuthenticatedAt }),
+    });
     const payload = this.jwtService.decode(accessToken);
     if (!payload || typeof payload === "string" || typeof payload.exp !== "number") {
       throw new Error("Access token must include an expiry.");
