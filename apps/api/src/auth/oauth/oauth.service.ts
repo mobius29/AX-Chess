@@ -12,6 +12,8 @@ import { Prisma } from "../../../generated/prisma/client";
 import { PrismaService } from "../../prisma.service";
 import type { JwtPayload } from "../auth.decorator";
 import { AuthService } from "../auth.service";
+import type { OAuthCallbackDto } from "./dtos/oauth-callback.dto";
+import { oauthError } from "./exceptions/oauth.exception";
 
 interface Identity {
   id: string;
@@ -21,9 +23,6 @@ interface Identity {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
-
-export const oauthError = (code = "OAUTH_FAILED", status = 400) =>
-  new HttpException({ code, message: "소셜 로그인을 완료하지 못했습니다." }, status);
 
 @Injectable()
 export class OAuthService {
@@ -133,11 +132,7 @@ export class OAuthService {
     return { authorizationUrl, linkTicket };
   }
 
-  async complete(
-    provider: string,
-    input: { code: string; codeVerifier: string; state: string; linkTicket?: string },
-    currentUser?: JwtPayload,
-  ) {
+  async complete(provider: string, input: OAuthCallbackDto, currentUser?: JwtPayload) {
     const started = Date.now();
     try {
       this.settings(provider);

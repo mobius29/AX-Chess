@@ -13,37 +13,14 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 import { CurrentUser } from "../auth.decorator";
 import type { JwtPayload } from "../auth.decorator";
 import { AuthGuard } from "../auth.guard";
-import { oauthError, OAuthService } from "./oauth.service";
-
-export class OAuthStartDto {
-  @Matches(/^[a-zA-Z0-9_-]{43,128}$/)
-  state!: string;
-
-  @Matches(/^[a-zA-Z0-9_-]{43,128}$/)
-  codeVerifier!: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(1024)
-  password?: string;
-}
-
-export class OAuthCallbackDto extends OAuthStartDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(4096)
-  code!: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2048)
-  linkTicket?: string;
-}
+import { OAuthCallbackDto } from "./dtos/oauth-callback.dto";
+import { OAuthStartDto } from "./dtos/oauth-start.dto";
+import { oauthError } from "./exceptions/oauth.exception";
+import { OAuthService } from "./oauth.service";
 
 @Injectable()
 export class OAuthBffGuard implements CanActivate {
