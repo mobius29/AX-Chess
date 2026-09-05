@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
+import { SocialAuth } from "@/app/_components/auth/SocialAuth";
 import { AppNav } from "@/app/_components/layout/AppNav";
 import { Avatar } from "@/app/_components/ui/Avatar";
 import { Button } from "@/app/_components/ui/Button";
@@ -77,6 +78,8 @@ const ProfilePage = () => {
               <p className="text-title-5 text-ink">{user.email}</p>
             </div>
           </div>
+
+          <SocialAuth user={user} />
 
           <div className="mt-8 flex items-center gap-3">
             <Button

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { isOAuthProxyPath } from "@/app/_lib/auth/oauth";
 import {
   ACCESS_TOKEN_COOKIE,
   deleteSessionCookies,
@@ -17,6 +18,7 @@ type Context = { params: Promise<{ proxy: string[] }> };
 
 const proxyRequest = async (request: Request, { params }: Context) => {
   const { proxy } = await params;
+  if (isOAuthProxyPath(proxy)) return new NextResponse(null, { status: 404 });
   const path = proxy.map(encodeURIComponent).join("/");
 
   const cookieStore = await cookies();

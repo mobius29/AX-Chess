@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
 
 import { AuthDivider, AuthPanel } from "@/app/_components/auth";
+import { SocialAuth } from "@/app/_components/auth/SocialAuth";
 import { BulletList } from "@/app/_components/ui/BulletList";
 import { Button } from "@/app/_components/ui/Button";
 import { Form, FormField } from "@/app/_components/ui/Form";
@@ -36,7 +37,7 @@ const SignUpPage = () => {
         <section className="w-full max-w-[384px]">
           <header className="mb-7 flex flex-col gap-2">
             <h1 className="text-title-2 text-ink font-semibold">첫 판까지 30초.</h1>
-            <p className="text-body-3 text-muted">이메일만 있으면 됩니다. 소셜 로그인은 지원하지 않습니다.</p>
+            <p className="text-body-3 text-muted">이메일로 가입하고 첫 대국을 시작하세요.</p>
           </header>
 
           <Form aria-busy={signUp.isPending} onSubmit={handleSubmit}>
@@ -75,6 +76,7 @@ const SignUpPage = () => {
               {signUp.isPending ? "가입 중..." : "가입하고 시작하기"}
             </Button>
           </Form>
+          <SocialAuth />
 
           <div className="mt-7 flex flex-col gap-4">
             <AuthDivider text="이미 계정이 있나요?" />

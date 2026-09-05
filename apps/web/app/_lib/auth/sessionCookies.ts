@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const oauthSignupCookie = () => `${process.env.NODE_ENV === "production" ? "__Host-" : ""}oauth_signup`;
+
 export const ACCESS_TOKEN_COOKIE = "accessToken";
 export const REFRESH_TOKEN_COOKIE = "refreshToken";
 
@@ -48,5 +50,7 @@ export const isTokenResponse = (value: unknown): value is TokenResponse =>
   "refreshExpiresAt" in value &&
   typeof value.accessExpiresAt === "string" &&
   typeof value.accessToken === "string" &&
+  value.accessToken.length > 0 &&
   typeof value.refreshToken === "string" &&
+  value.refreshToken.length > 0 &&
   typeof value.refreshExpiresAt === "string";
