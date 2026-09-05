@@ -138,6 +138,7 @@ export interface UserDto {
 }
 
 export type ApiErrorCode =
+  | "OAUTH_SIGNUP_EXPIRED"
   | "OAUTH_FAILED"
   | "OAUTH_DISABLED"
   | "OAUTH_EMAIL_REQUIRED"

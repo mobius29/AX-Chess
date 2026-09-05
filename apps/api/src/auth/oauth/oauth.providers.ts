@@ -15,7 +15,6 @@ export interface OAuthSettings {
 export interface Identity {
   id: string;
   email: string;
-  nickname: string;
 }
 
 interface ProviderHandler {
@@ -31,7 +30,7 @@ export const oauthProviders = new Map<OAuthProvider, ProviderHandler>([
       clientIdKey: "GOOGLE_CLIENT_ID",
       authorizationUrl: (settings, state, codeVerifier) =>
         new OAuth2Client(settings.clientId, settings.clientSecret, settings.redirectUri).generateAuthUrl({
-          scope: ["openid", "email", "profile"],
+          scope: ["openid", "email"],
           state,
           code_challenge: createHash("sha256").update(codeVerifier).digest("base64url"),
           code_challenge_method: CodeChallengeMethod.S256,
@@ -49,7 +48,7 @@ export const oauthProviders = new Map<OAuthProvider, ProviderHandler>([
           client_id: settings.clientId,
           redirect_uri: settings.redirectUri,
           response_type: "code",
-          scope: "account_email,profile_nickname",
+          scope: "account_email",
           state,
         })}`,
       identity: kakaoIdentity,
@@ -83,7 +82,6 @@ async function googleIdentity(settings: OAuthSettings, code: string, codeVerifie
   return {
     id: payload.sub,
     email: verifiedEmail(payload.email, payload.email_verified === true),
-    nickname: payload.name ?? "player",
   };
 }
 

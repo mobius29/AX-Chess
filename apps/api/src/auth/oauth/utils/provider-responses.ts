@@ -26,7 +26,5 @@ export function parseKakaoIdentity(json: string): Identity {
   return {
     id: data.id,
     email: verifiedEmail(account.email, account.is_email_valid === true && account.is_email_verified === true),
-    nickname:
-      isRecord(account.profile) && typeof account.profile.nickname === "string" ? account.profile.nickname : "player",
   };
 }

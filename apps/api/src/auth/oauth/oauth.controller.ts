@@ -4,6 +4,7 @@ import { CurrentUser } from "../auth.decorator";
 import type { JwtPayload } from "../auth.decorator";
 import { AuthGuard } from "../auth.guard";
 import { OAuthCallbackDto } from "./dtos/oauth-callback.dto";
+import { OAuthSignupDto } from "./dtos/oauth-signup.dto";
 import { OAuthStartDto } from "./dtos/oauth-start.dto";
 import { OAuthBffGuard } from "./oauth-bff.guard";
 import { OAuthService } from "./oauth.service";
@@ -16,6 +17,12 @@ export class OAuthController {
   @Get("providers")
   providers() {
     return this.oauth.providers();
+  }
+
+  @Post("signup")
+  @HttpCode(200)
+  completeSignup(@Body() body: OAuthSignupDto) {
+    return this.oauth.completeSignup(body);
   }
 
   @Post(":provider/start")

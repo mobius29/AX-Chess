@@ -15,6 +15,7 @@ import type { JwtPayload } from "./auth.decorator";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { SignInRequestDTO } from "./dtos/login.dto";
+import { NicknameDto } from "./dtos/nickname.dto";
 import { SignUpRequestDTO } from "./dtos/sign-up.dto";
 
 @Controller("auth")
@@ -26,6 +27,12 @@ export class AuthController {
   @Get("me")
   async getMe(@CurrentUser() user: JwtPayload) {
     return this.authService.getCurrentUser(user.sub);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post("nickname/check")
+  checkNickname(@Body() body: NicknameDto) {
+    return this.authService.checkNickname(body.nickname);
   }
 
   @HttpCode(HttpStatus.CREATED)

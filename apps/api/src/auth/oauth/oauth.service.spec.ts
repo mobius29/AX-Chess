@@ -7,19 +7,16 @@ import { OAuth2Client } from "google-auth-library";
 
 import { Prisma } from "../../../generated/prisma/client";
 import { OAuthConfigService } from "../../config/oauth-config.service";
+import type { EnvConfigService } from "../../env-config.service";
 import { PrismaService } from "../../prisma.service";
 import { AuthService } from "../auth.service";
-import { OAuthAccountsService } from "./oauth-accounts.service";
-import { OAuthLinkService } from "./oauth-link.service";
 import { OAuthService } from "./oauth.service";
 
-const createService = (config: ConfigService, prisma: PrismaService, auth: AuthService, jwt: JwtService) =>
-  new OAuthService(
-    new OAuthConfigService(config),
-    new OAuthAccountsService(prisma),
-    auth,
-    new OAuthLinkService(config, prisma, jwt),
-  );
+const createService = (config: ConfigService, prisma: PrismaService, auth: AuthService, jwt: JwtService) => {
+  const userAuth = new AuthService(jwt, prisma, {} as EnvConfigService);
+  userAuth.issueTokens = auth.issueTokens.bind(auth);
+  return new OAuthService(new OAuthConfigService(config), config, userAuth, jwt);
+};
 
 const conflict = () => new Prisma.PrismaClientKnownRequestError("unique", { code: "P2002", clientVersion: "7.9.1" });
 
@@ -58,7 +55,9 @@ describe("OAuthService", () => {
       oAuthAccount: { findUnique: jest.fn(), create: jest.fn() },
       $transaction: jest.fn(async (callback) => callback(prisma)),
     };
-    auth = { issueTokens: jest.fn().mockResolvedValue({ accessToken: "app-token" }) };
+    auth = {
+      issueTokens: jest.fn().mockResolvedValue({ accessToken: "app-token" }),
+    };
     service = createService(
       new ConfigService(configValues),
       prisma as PrismaService,
@@ -69,12 +68,13 @@ describe("OAuthService", () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it("constructs Google PKCE and Kakao comma-separated consent requests", async () => {
+  it("constructs Google PKCE and requests only the identity scopes needed for signup", async () => {
     const google = new URL((await service.start("google", state, input.codeVerifier)).authorizationUrl);
     expect(google.searchParams.get("code_challenge_method")).toBe("S256");
     expect(google.searchParams.get("state")).toBe(state);
+    expect(google.searchParams.get("scope")).toBe("openid email");
     const kakaoUrl = new URL((await service.start("kakao", state, input.codeVerifier)).authorizationUrl);
-    expect(kakaoUrl.searchParams.get("scope")).toBe("account_email,profile_nickname");
+    expect(kakaoUrl.searchParams.get("scope")).toBe("account_email");
     expect(kakaoUrl.searchParams.has("client_secret")).toBe(false);
   });
 
@@ -84,6 +84,7 @@ describe("OAuthService", () => {
     service = createService(config, prisma, auth as unknown as AuthService, new JwtService());
     expect(get.mock.calls.filter(([key]) => key === "WEB_URL")).toHaveLength(1);
     get.mockClear();
+    prisma.oAuthAccount.findUnique.mockResolvedValue({ user });
     await service.start("google", state, input.codeVerifier);
     await service.start("kakao", state, input.codeVerifier);
     kakao();
@@ -203,13 +204,22 @@ describe("OAuthService", () => {
     },
   );
 
-  it("creates a user and provider link in one nested write with a valid nickname", async () => {
+  const signupTicket = async (provider = "kakao") => {
+    const result = await service.complete(provider, input);
+    if (!("signupTicket" in result) || !result.signupTicket) throw new Error("Expected pending signup");
+    return result.signupTicket;
+  };
+
+  it("returns a signup ticket without creating an account or session", async () => {
     kakao();
-    await service.complete("kakao", input);
-    const data = prisma.user.create.mock.calls[0][0].data;
-    expect(data.nickname).toMatch(/^[a-zA-Z0-9가-힣_]{2,16}$/);
-    expect(data.oauthAccounts.create).toEqual({ provider: "kakao", providerAccountId: "123" });
-    expect(auth.issueTokens).toHaveBeenCalledWith(user, expect.any(Number));
+    const ticket = await signupTicket();
+    expect(new JwtService().decode(ticket)).toMatchObject({
+      provider: "kakao",
+      identity: { id: "123", email: user.email },
+      aud: "oauth-signup",
+    });
+    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(auth.issueTokens).not.toHaveBeenCalled();
     expect(fetchMock.mock.calls[0][1].body.get("client_secret")).toBe("kakao-secret");
   });
 
@@ -229,8 +239,8 @@ describe("OAuthService", () => {
           '{"id":9007199254740993,"kakao_account":{"email":"user@example.com","is_email_valid":true,"is_email_verified":true}}',
         ),
       );
-    await service.complete("kakao", input);
-    expect(prisma.user.create.mock.calls[0][0].data.oauthAccounts.create.providerAccountId).toBe("9007199254740993");
+    const ticket = await signupTicket();
+    expect(new JwtService().decode(ticket).identity.id).toBe("9007199254740993");
   });
 
   it.each([
@@ -256,22 +266,117 @@ describe("OAuthService", () => {
     expect(prisma.oAuthAccount.create).not.toHaveBeenCalled();
   });
 
-  it("recovers concurrent signup by re-reading the unique provider identity", async () => {
+  it("creates the account with the chosen nickname and the original authentication time", async () => {
     kakao();
-    prisma.user.create.mockRejectedValueOnce(conflict());
-    prisma.oAuthAccount.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ user });
-    await service.complete("kakao", input);
-    expect(auth.issueTokens).toHaveBeenCalledTimes(1);
-    expect(prisma.user.create).toHaveBeenCalledTimes(1);
+    const ticket = await signupTicket();
+    const authenticatedAt = new JwtService().decode(ticket).authenticatedAt;
+    prisma.user.findUnique.mockClear();
+    prisma.oAuthAccount.findUnique.mockClear();
+    await service.completeSignup({ signupTicket: ticket, nickname: "체스_왕" });
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: {
+        email: user.email,
+        nickname: "체스_왕",
+        oauthAccounts: { create: { provider: "kakao", providerAccountId: "123" } },
+      },
+    });
+    expect(auth.issueTokens).toHaveBeenCalledWith(user, authenticatedAt);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.oAuthAccount.findUnique).not.toHaveBeenCalled();
   });
 
-  it("retries nickname collisions with a fresh suffix", async () => {
+  it("allows a different nickname after a duplicate without repeating OAuth", async () => {
     kakao();
-    prisma.user.create.mockRejectedValueOnce(conflict()).mockResolvedValueOnce(user);
-    await service.complete("kakao", input);
-    expect(prisma.user.create.mock.calls[0][0].data.nickname).not.toBe(
-      prisma.user.create.mock.calls[1][0].data.nickname,
-    );
+    const ticket = await signupTicket();
+    prisma.user.create.mockRejectedValueOnce(conflict());
+    prisma.user.findUnique.mockImplementation(async ({ where }: any) => (where.nickname === "taken" ? user : null));
+    await expect(service.completeSignup({ signupTicket: ticket, nickname: "taken" })).rejects.toMatchObject({
+      response: { code: "NICKNAME_TAKEN" },
+      status: 409,
+    });
+    expect(auth.issueTokens).not.toHaveBeenCalled();
+    await service.completeSignup({ signupTicket: ticket, nickname: "available" });
+    expect(prisma.user.create).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a nickname claimed after the availability check without retrying creation", async () => {
+    kakao();
+    const ticket = await signupTicket();
+    prisma.user.create.mockRejectedValueOnce(conflict());
+    prisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(user);
+    await expect(service.completeSignup({ signupTicket: ticket, nickname: "taken" })).rejects.toMatchObject({
+      response: { code: "NICKNAME_TAKEN" },
+    });
+    expect(prisma.user.create).toHaveBeenCalledTimes(1);
+    expect(auth.issueTokens).not.toHaveBeenCalled();
+  });
+
+  it("rejects replay after signup and never issues a second session", async () => {
+    kakao();
+    const ticket = await signupTicket();
+    await service.completeSignup({ signupTicket: ticket, nickname: "player" });
+    prisma.oAuthAccount.findUnique.mockResolvedValue({ user });
+    prisma.user.create.mockRejectedValueOnce(conflict());
+    await expect(service.completeSignup({ signupTicket: ticket, nickname: "other" })).rejects.toMatchObject({
+      response: { code: "OAUTH_SIGNUP_EXPIRED" },
+      status: 401,
+    });
+    expect(auth.issueTokens).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a concurrent signup instead of creating or logging into another account", async () => {
+    kakao();
+    const ticket = await signupTicket();
+    prisma.user.create.mockRejectedValueOnce(conflict());
+    prisma.oAuthAccount.findUnique.mockResolvedValue({ user });
+    await expect(service.completeSignup({ signupTicket: ticket, nickname: "player" })).rejects.toMatchObject({
+      response: { code: "OAUTH_SIGNUP_EXPIRED" },
+    });
+    expect(prisma.user.create).toHaveBeenCalledTimes(1);
+    expect(auth.issueTokens).not.toHaveBeenCalled();
+  });
+
+  it("rejects expired signup tickets before any database writes", async () => {
+    kakao();
+    const ticket = await signupTicket();
+    jest.spyOn(Date, "now").mockReturnValue(Date.now() + 600_001);
+    await expect(service.completeSignup({ signupTicket: ticket, nickname: "player" })).rejects.toMatchObject({
+      response: { code: "OAUTH_SIGNUP_EXPIRED" },
+    });
+    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(auth.issueTokens).not.toHaveBeenCalled();
+  });
+
+  it("rejects tampered and application JWTs as signup tickets", async () => {
+    kakao();
+    const ticket = await signupTicket();
+    await expect(service.completeSignup({ signupTicket: `${ticket}x`, nickname: "player" })).rejects.toMatchObject({
+      response: { code: "OAUTH_SIGNUP_EXPIRED" },
+    });
+    const access = new JwtService({ secret: "access-secret" }).sign({ sub: user.id });
+    await expect(service.completeSignup({ signupTicket: access, nickname: "player" })).rejects.toMatchObject({
+      response: { code: "OAUTH_SIGNUP_EXPIRED" },
+    });
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it("keeps signup and linking tickets separate", async () => {
+    kakao();
+    const pendingSignup = await signupTicket();
+    const current = { sub: user.id, email: user.email, oauthAuthenticatedAt: Date.now() };
+    prisma.user.findUnique.mockResolvedValue(user);
+    const { linkTicket } = await service.start("kakao", state, input.codeVerifier, current);
+    await expect(service.completeSignup({ signupTicket: linkTicket!, nickname: "player" })).rejects.toMatchObject({
+      response: { code: "OAUTH_SIGNUP_EXPIRED" },
+    });
+    fetchMock.mockClear();
+    await expect(service.complete("kakao", { ...input, linkTicket: pendingSignup }, current)).rejects.toMatchObject({
+      response: { code: "OAUTH_FAILED" },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(auth.issueTokens).not.toHaveBeenCalled();
   });
 
   it("requires password re-entry and rejects expired social reauthentication", async () => {
@@ -381,8 +486,8 @@ describe("OAuthService", () => {
 
     it("accepts a valid token and sends the PKCE verifier", async () => {
       exchange.mockResolvedValueOnce({ tokens: { id_token: sign({}) } });
-      await service.complete("google", input);
-      expect(prisma.user.create.mock.calls[0][0].data.oauthAccounts.create.providerAccountId).toBe("google-sub");
+      const ticket = await signupTicket("google");
+      expect(new JwtService().decode(ticket).identity.id).toBe("google-sub");
       expect(exchange).toHaveBeenLastCalledWith({ code: input.code, codeVerifier: input.codeVerifier });
     });
   });

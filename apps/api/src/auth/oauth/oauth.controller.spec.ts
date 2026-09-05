@@ -5,6 +5,8 @@ import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 
+import { AuthController } from "../auth.controller";
+import { AuthService } from "../auth.service";
 import { OAuthBffGuard } from "./oauth-bff.guard";
 import { OAuthController } from "./oauth.controller";
 import { OAuthService } from "./oauth.service";
@@ -13,18 +15,21 @@ describe("OAuth HTTP boundary", () => {
   let app: INestApplication;
   const secret = "b".repeat(32);
   const oauth = {
+    completeSignup: jest.fn().mockResolvedValue({ accessToken: "app-token" }),
     complete: jest.fn().mockResolvedValue({ linked: true }),
     start: jest.fn().mockResolvedValue({}),
     providers: () => ["google"],
   };
+  const auth = { checkNickname: jest.fn().mockResolvedValue({ available: true }) };
   const jwt = new JwtService({ secret: "access-secret" });
   const body = { code: "code", state: "s".repeat(43), codeVerifier: "v".repeat(43) };
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      controllers: [OAuthController],
+      controllers: [OAuthController, AuthController],
       providers: [
         OAuthBffGuard,
+        { provide: AuthService, useValue: auth },
         { provide: ConfigService, useValue: new ConfigService({ OAUTH_BFF_SECRET: secret }) },
         { provide: OAuthService, useValue: oauth },
         { provide: JwtService, useValue: jwt },
@@ -56,6 +61,36 @@ describe("OAuth HTTP boundary", () => {
       .send(body)
       .expect(403);
     expect(oauth.complete).not.toHaveBeenCalled();
+  });
+
+  it("exposes nickname checks through auth without OAuth credentials", async () => {
+    await request(app.getHttpServer())
+      .post("/auth/nickname/check")
+      .send({ nickname: "체스_왕" })
+      .expect(200, { available: true });
+    expect(auth.checkNickname).toHaveBeenCalledWith("체스_왕");
+  });
+
+  it("validates nicknames at the shared auth boundary", async () => {
+    await request(app.getHttpServer()).post("/auth/nickname/check").send({ nickname: "bad name" }).expect(400);
+    expect(auth.checkNickname).not.toHaveBeenCalled();
+  });
+
+  it("protects signup with BFF credentials", async () => {
+    await request(app.getHttpServer())
+      .post("/auth/oauth/signup")
+      .send({ signupTicket: "ticket", nickname: "player" })
+      .expect(403);
+    expect(oauth.completeSignup).not.toHaveBeenCalled();
+  });
+
+  it.each(["", "a", "a".repeat(17), "bad name"])("rejects invalid signup nickname %s", async (nickname) => {
+    await request(app.getHttpServer())
+      .post("/auth/oauth/signup")
+      .set("x-oauth-bff-secret", secret)
+      .send({ signupTicket: "ticket", nickname })
+      .expect(400);
+    expect(oauth.completeSignup).not.toHaveBeenCalled();
   });
 
   it("rejects malformed codes before provider calls", async () => {
