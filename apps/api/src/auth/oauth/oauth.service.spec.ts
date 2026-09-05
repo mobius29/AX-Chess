@@ -6,9 +6,20 @@ import argon2 from "argon2";
 import { OAuth2Client } from "google-auth-library";
 
 import { Prisma } from "../../../generated/prisma/client";
+import { OAuthConfigService } from "../../config/oauth-config.service";
 import { PrismaService } from "../../prisma.service";
 import { AuthService } from "../auth.service";
+import { OAuthAccountsService } from "./oauth-accounts.service";
+import { OAuthLinkService } from "./oauth-link.service";
 import { OAuthService } from "./oauth.service";
+
+const createService = (config: ConfigService, prisma: PrismaService, auth: AuthService, jwt: JwtService) =>
+  new OAuthService(
+    new OAuthConfigService(config),
+    new OAuthAccountsService(prisma),
+    auth,
+    new OAuthLinkService(config, prisma, jwt),
+  );
 
 const conflict = () => new Prisma.PrismaClientKnownRequestError("unique", { code: "P2002", clientVersion: "7.9.1" });
 
@@ -48,7 +59,7 @@ describe("OAuthService", () => {
       $transaction: jest.fn(async (callback) => callback(prisma)),
     };
     auth = { issueTokens: jest.fn().mockResolvedValue({ accessToken: "app-token" }) };
-    service = new OAuthService(
+    service = createService(
       new ConfigService(configValues),
       prisma as PrismaService,
       auth as unknown as AuthService,
@@ -67,26 +78,130 @@ describe("OAuthService", () => {
     expect(kakaoUrl.searchParams.has("client_secret")).toBe(false);
   });
 
+  it("validates shared OAuth settings once and reuses them for requests", async () => {
+    const config = new ConfigService(configValues);
+    const get = jest.spyOn(config, "get");
+    service = createService(config, prisma, auth as unknown as AuthService, new JwtService());
+    expect(get.mock.calls.filter(([key]) => key === "WEB_URL")).toHaveLength(1);
+    get.mockClear();
+    await service.start("google", state, input.codeVerifier);
+    await service.start("kakao", state, input.codeVerifier);
+    kakao();
+    await service.complete("kakao", input);
+    expect(service.providers()).toEqual(["google", "kakao"]);
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("does not require OAuth settings when all providers are disabled", () => {
+    const config = new OAuthConfigService(
+      new ConfigService({
+        GOOGLE_OAUTH_ENABLED: "false",
+        KAKAO_OAUTH_ENABLED: "false",
+      }),
+    );
+    expect(config.providers()).toEqual([]);
+    expect(() => config.settings("google")).toThrow("소셜 로그인을 완료하지 못했습니다.");
+  });
+
   it("fails startup for enabled providers with incomplete configuration", () => {
-    expect(
-      () =>
-        new OAuthService(
-          new ConfigService({ ...configValues, KAKAO_CLIENT_SECRET: "" }),
-          prisma,
-          auth as any,
-          new JwtService(),
-        ),
+    expect(() =>
+      createService(
+        new ConfigService({ ...configValues, KAKAO_CLIENT_SECRET: "" }),
+        prisma,
+        auth as any,
+        new JwtService(),
+      ),
     ).toThrow("KAKAO_CLIENT_SECRET");
-    expect(
-      () =>
-        new OAuthService(
-          new ConfigService({ ...configValues, GOOGLE_REDIRECT_URI: "https://wrong.example" }),
-          prisma,
-          auth as any,
-          new JwtService(),
-        ),
+    expect(() =>
+      createService(
+        new ConfigService({ ...configValues, GOOGLE_REDIRECT_URI: "https://wrong.example" }),
+        prisma,
+        auth as any,
+        new JwtService(),
+      ),
     ).toThrow("GOOGLE_REDIRECT_URI");
   });
+
+  it.each([
+    { WEB_URL: "http://localhost:3000/path" },
+    { WEB_URL: "http://localhost:3000?query=1" },
+    { WEB_URL: "http://localhost:3000#fragment" },
+    { WEB_URL: "http://user:password@localhost:3000" },
+    { WEB_URL: "ftp://localhost:3000" },
+    { NODE_ENV: "production" },
+    { OAUTH_BFF_SECRET: "short" },
+    { JWT_SECRET: configValues.OAUTH_BFF_SECRET },
+  ])("rejects invalid OAuth configuration: %j", (overrides) => {
+    expect(() =>
+      createService(
+        new ConfigService({ ...configValues, ...overrides }),
+        prisma,
+        auth as unknown as AuthService,
+        new JwtService(),
+      ),
+    ).toThrow(/WEB_URL|OAUTH_BFF_SECRET/);
+  });
+
+  it.each([-1, 600_001])("rejects reauthentication outside the window at age %s ms", async (age) => {
+    const now = 1_800_000_000_000;
+    jest.spyOn(Date, "now").mockReturnValue(now);
+    prisma.user.findUnique.mockResolvedValue(user);
+    await expect(
+      service.start("kakao", state, input.codeVerifier, {
+        sub: user.id,
+        email: user.email,
+        oauthAuthenticatedAt: now - age,
+      }),
+    ).rejects.toMatchObject({ response: { code: "OAUTH_REAUTH_REQUIRED" }, status: 403 });
+  });
+
+  it.each([0, 600_000])("accepts reauthentication at the inclusive boundary of %s ms", async (age) => {
+    const now = 1_800_000_000_000;
+    jest.spyOn(Date, "now").mockReturnValue(now);
+    prisma.user.findUnique.mockResolvedValue(user);
+    await expect(
+      service.start("kakao", state, input.codeVerifier, {
+        sub: user.id,
+        email: user.email,
+        oauthAuthenticatedAt: now - age,
+      }),
+    ).resolves.toHaveProperty("linkTicket", expect.any(String));
+  });
+
+  it.each([null, [], {}, { access_token: 123 }, { access_token: "" }])(
+    "rejects malformed Kakao tokens before fetching a profile: %j",
+    async (tokens) => {
+      fetchMock.mockResolvedValueOnce(Response.json(tokens));
+      await expect(service.complete("kakao", input)).rejects.toMatchObject({ response: { code: "OAUTH_FAILED" } });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(auth.issueTokens).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["github", "kakao"])(
+    "rejects unsupported or disabled provider %s before any side effects",
+    async (provider) => {
+      service = createService(
+        new ConfigService({ ...configValues, KAKAO_OAUTH_ENABLED: "false" }),
+        prisma,
+        auth as unknown as AuthService,
+        new JwtService(),
+      );
+      expect(service.providers()).toEqual(["google"]);
+      await expect(service.start(provider, state, input.codeVerifier)).rejects.toMatchObject({
+        response: { code: "OAUTH_DISABLED" },
+        status: 404,
+      });
+      await expect(service.complete(provider, input)).rejects.toMatchObject({
+        response: { code: "OAUTH_DISABLED" },
+        status: 404,
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(prisma.oAuthAccount.findUnique).not.toHaveBeenCalled();
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(auth.issueTokens).not.toHaveBeenCalled();
+    },
+  );
 
   it("creates a user and provider link in one nested write with a valid nickname", async () => {
     kakao();
@@ -170,21 +285,33 @@ describe("OAuthService", () => {
     ).rejects.toMatchObject({ response: { code: "OAUTH_REAUTH_REQUIRED" } });
   });
 
-  it("binds linking to the user, state and provider and keeps tickets separate from access JWTs", async () => {
+  it.each([
+    ["google", state, user.id],
+    ["kakao", "wrong", user.id],
+    ["kakao", state, "other-user"],
+  ])("rejects a link ticket for provider=%s state=%s user=%s", async (provider, callbackState, userId) => {
+    const current = { sub: user.id, email: user.email, oauthAuthenticatedAt: Date.now() };
+    prisma.user.findUnique.mockResolvedValue(user);
+    const { linkTicket } = await service.start("kakao", state, input.codeVerifier, current);
+    await expect(
+      service.complete(
+        provider,
+        { ...input, state: callbackState, linkTicket },
+        {
+          ...current,
+          sub: userId,
+        },
+      ),
+    ).rejects.toMatchObject({ response: { code: "OAUTH_FAILED" } });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(auth.issueTokens).not.toHaveBeenCalled();
+  });
+
+  it("links the account with a valid ticket that is separate from access JWTs", async () => {
     const current = { sub: user.id, email: user.email, oauthAuthenticatedAt: Date.now() };
     prisma.user.findUnique.mockResolvedValue(user);
     const { linkTicket } = await service.start("kakao", state, input.codeVerifier, current);
     expect(() => new JwtService({ secret: "access-secret" }).verify(linkTicket!)).toThrow("invalid signature");
-    for (const [provider, payload, actor] of [
-      ["google", { ...input, linkTicket }, current],
-      ["kakao", { ...input, state: "wrong", linkTicket }, current],
-      ["kakao", { ...input, linkTicket }, { ...current, sub: "other-user" }],
-    ] as const)
-      // oxlint-disable-next-line no-await-in-loop -- Check each rejected binding before the successful link uses shared mocks.
-      await expect(service.complete(provider, payload, actor)).rejects.toMatchObject({
-        response: { code: "OAUTH_FAILED" },
-      });
-    expect(fetchMock).not.toHaveBeenCalled();
     kakao();
     await expect(service.complete("kakao", { ...input, linkTicket }, current)).resolves.toEqual({ linked: true });
     expect(prisma.oAuthAccount.create).toHaveBeenCalledWith({
@@ -204,44 +331,60 @@ describe("OAuthService", () => {
     });
   });
 
-  it("verifies Google signature, issuer, audience, expiry and verified email without network access", async () => {
-    const { privateKey, publicKey } = generateKeyPairSync("rsa", {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: "spki", format: "pem" },
-      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  describe("Google ID token verification", () => {
+    let sign: (overrides: object) => string;
+    let exchange: jest.SpyInstance;
+
+    beforeEach(() => {
+      const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: "spki", format: "pem" },
+        privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      });
+      jest
+        .spyOn(OAuth2Client.prototype, "getFederatedSignonCertsAsync")
+        .mockResolvedValue({ certs: { test: publicKey } } as never);
+      exchange = jest.spyOn(OAuth2Client.prototype, "getToken");
+      const payload = {
+        sub: "google-sub",
+        email: user.email,
+        email_verified: true,
+        iss: "https://accounts.google.com",
+        aud: "google-id",
+        exp: Math.floor(Date.now() / 1000) + 600,
+      };
+      const signer = new JwtService();
+      sign = (overrides) =>
+        signer.sign(
+          { ...payload, ...overrides },
+          {
+            privateKey,
+            algorithm: "RS256",
+            keyid: "test",
+          },
+        );
     });
-    jest
-      .spyOn(OAuth2Client.prototype, "getFederatedSignonCertsAsync")
-      .mockResolvedValue({ certs: { test: publicKey } } as never);
-    const exchange = jest.spyOn(OAuth2Client.prototype, "getToken");
-    const payload = {
-      sub: "google-sub",
-      email: user.email,
-      email_verified: true,
-      iss: "https://accounts.google.com",
-      aud: "google-id",
-      exp: Math.floor(Date.now() / 1000) + 600,
-    };
-    const signer = new JwtService();
-    const sign = (overrides: object) =>
-      signer.sign({ ...payload, ...overrides }, { privateKey, algorithm: "RS256", keyid: "test" });
-    for (const badToken of [
-      "invalid",
-      sign({ aud: "another-app" }),
-      sign({ iss: "https://attacker.test" }),
-      sign({ exp: Math.floor(Date.now() / 1000) - 600 }),
-      `${sign({})}tampered`,
-      sign({ email_verified: false }),
-    ]) {
-      exchange.mockResolvedValueOnce({ tokens: { id_token: badToken } } as never);
-      // oxlint-disable-next-line no-await-in-loop -- Consume this token's one-shot mock before configuring the next token.
+
+    it.each([
+      ["malformed", () => "invalid"],
+      ["wrong audience", () => sign({ aud: "another-app" })],
+      ["wrong issuer", () => sign({ iss: "https://attacker.test" })],
+      ["expired", () => sign({ exp: Math.floor(Date.now() / 1000) - 600 })],
+      ["tampered", () => `${sign({})}tampered`],
+      ["unverified email", () => sign({ email_verified: false })],
+    ] as const)("rejects a %s token", async (_name, token) => {
+      exchange.mockResolvedValueOnce({ tokens: { id_token: token() } });
       await expect(service.complete("google", input)).rejects.toBeInstanceOf(Error);
-    }
-    expect(auth.issueTokens).not.toHaveBeenCalled();
-    exchange.mockResolvedValueOnce({ tokens: { id_token: sign({}) } } as never);
-    await service.complete("google", input);
-    expect(prisma.user.create.mock.calls[0][0].data.oauthAccounts.create.providerAccountId).toBe("google-sub");
-    expect(exchange).toHaveBeenLastCalledWith({ code: input.code, codeVerifier: input.codeVerifier });
+      expect(auth.issueTokens).not.toHaveBeenCalled();
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it("accepts a valid token and sends the PKCE verifier", async () => {
+      exchange.mockResolvedValueOnce({ tokens: { id_token: sign({}) } });
+      await service.complete("google", input);
+      expect(prisma.user.create.mock.calls[0][0].data.oauthAccounts.create.providerAccountId).toBe("google-sub");
+      expect(exchange).toHaveBeenLastCalledWith({ code: input.code, codeVerifier: input.codeVerifier });
+    });
   });
 
   it("sanitizes provider failures without issuing sessions", async () => {

@@ -5,7 +5,8 @@ import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 
-import { OAuthBffGuard, OAuthController } from "./oauth.controller";
+import { OAuthBffGuard } from "./oauth-bff.guard";
+import { OAuthController } from "./oauth.controller";
 import { OAuthService } from "./oauth.service";
 
 describe("OAuth HTTP boundary", () => {
@@ -43,6 +44,15 @@ describe("OAuth HTTP boundary", () => {
     await request(app.getHttpServer())
       .post("/auth/oauth/google/callback")
       .set("x-oauth-bff-secret", "wrong")
+      .send(body)
+      .expect(403);
+    expect(oauth.complete).not.toHaveBeenCalled();
+  });
+
+  it.each(["x".repeat(32), "한".repeat(32)])("rejects an incorrect BFF secret: %s", async (value) => {
+    await request(app.getHttpServer())
+      .post("/auth/oauth/google/callback")
+      .set("x-oauth-bff-secret", Buffer.from(value).toString("latin1"))
       .send(body)
       .expect(403);
     expect(oauth.complete).not.toHaveBeenCalled();
