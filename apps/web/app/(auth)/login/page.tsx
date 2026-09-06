@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
 
 import { AuthDivider, AuthPanel } from "@/app/_components/auth";
+import { SocialAuth } from "@/app/_components/auth/SocialAuth";
 import { Button } from "@/app/_components/ui/Button";
 import { Form, FormField } from "@/app/_components/ui/Form";
 import { Link } from "@/app/_components/ui/Link";
@@ -72,6 +73,7 @@ const LoginPage = () => {
               {login.isPending ? "로그인 중..." : "로그인"}
             </Button>
           </Form>
+          <SocialAuth />
 
           <div className="mt-7 flex flex-col gap-4">
             <AuthDivider text="아직 계정이 없나요?" />

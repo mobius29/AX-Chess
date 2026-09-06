@@ -43,6 +43,16 @@ describe("AuthService", () => {
     expect(service).toBeDefined();
   });
 
+  it("checks nickname availability for every signup method", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: "other-user" });
+    await expect(service.checkNickname("available")).resolves.toEqual({ available: true });
+    await expect(service.checkNickname("taken")).rejects.toMatchObject({
+      response: { code: "NICKNAME_TAKEN" },
+      status: 409,
+    });
+    expect(prisma.user.findUnique).toHaveBeenLastCalledWith({ where: { nickname: "taken" } });
+  });
+
   it("rejects password login for an OAuth-only account", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: "oauth-user", passwordHash: null });
     await expect(service.signIn("user@example.com", "password")).rejects.toMatchObject({ status: 401 });

@@ -1,9 +1,15 @@
-import { BrandLink } from "@/app/_components/ui/Link";
+import { BrandLink, Link } from "@/app/_components/ui/Link";
+
+const POLICY_LINKS: Record<string, string> = {
+  "약관 및 정책": "/terms",
+  이용약관: "/terms/service",
+  "개인정보 처리방침": "/terms/privacy",
+};
 
 const COLUMNS = [
   { links: ["맹기 대국", "복기 분석", "난이도"], title: "제품" },
   { links: ["기보법 가이드", "자주 묻는 질문"], title: "리소스" },
-  { links: ["이용약관", "개인정보 처리방침"], title: "정책" },
+  { links: ["약관 및 정책", "이용약관", "개인정보 처리방침"], title: "정책" },
 ];
 
 const Footer = () => (
@@ -18,11 +24,21 @@ const Footer = () => (
         {COLUMNS.map(({ links, title }) => (
           <div className="flex flex-1 flex-col gap-2.5" key={title}>
             <p className="text-caption-3 text-on-dark">{title}</p>
-            {links.map((link) => (
-              <p className="text-body-3 text-on-dark-soft" key={link}>
-                {link}
-              </p>
-            ))}
+            {links.map((link) =>
+              POLICY_LINKS[link] ? (
+                <Link
+                  className="text-body-3 text-on-dark-soft underline underline-offset-4"
+                  href={POLICY_LINKS[link]}
+                  key={link}
+                >
+                  {link}
+                </Link>
+              ) : (
+                <p className="text-body-3 text-on-dark-soft" key={link}>
+                  {link}
+                </p>
+              ),
+            )}
           </div>
         ))}
       </div>

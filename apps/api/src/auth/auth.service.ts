@@ -5,9 +5,13 @@ import argon2 from "argon2";
 import { Prisma } from "../../generated/prisma/client";
 import { EnvConfigService } from "../env-config.service";
 import { PrismaService } from "../prisma.service";
+import type { JwtPayload } from "./auth.decorator";
 import { EmailTakenException } from "./exceptions/email-taken.exception";
 import { InvalidCredentialException } from "./exceptions/invalid-credential.exception";
 import { NicknameTakenException } from "./exceptions/nickname-taken.exception";
+import { oauthError } from "./oauth/exceptions/oauth.exception";
+import type { Identity } from "./oauth/oauth.providers";
+import { isRecentOAuthAuthentication } from "./oauth/utils/validation";
 
 interface TokenUser {
   id: string;
@@ -62,6 +66,74 @@ export class AuthService {
       hasPassword: Boolean(passwordHash),
       connectedProviders: oauthAccounts.map(({ provider }) => provider),
     };
+  }
+
+  async checkNickname(nickname: string) {
+    if (await this.prisma.user.findUnique({ where: { nickname } })) throw new NicknameTakenException();
+    return { available: true };
+  }
+
+  async resolveOAuthUser(provider: string, identity: Identity) {
+    const account = await this.prisma.oAuthAccount.findUnique({
+      where: { provider_providerAccountId: { provider, providerAccountId: identity.id } },
+      include: { user: true },
+    });
+    if (account) return account.user;
+    if (await this.prisma.user.findUnique({ where: { email: identity.email } }))
+      throw oauthError("ACCOUNT_LINK_REQUIRED", 409);
+    return null;
+  }
+
+  async createOAuthUser(provider: string, identity: Identity, nickname: string) {
+    try {
+      return await this.prisma.user.create({
+        data: {
+          email: identity.email,
+          nickname,
+          oauthAccounts: { create: { provider, providerAccountId: identity.id } },
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+      if (await this.resolveOAuthUser(provider, identity)) throw oauthError("OAUTH_SIGNUP_EXPIRED", 401);
+      await this.checkNickname(nickname);
+      throw oauthError();
+    }
+  }
+
+  async linkOAuthAccount(provider: string, identity: Identity, userId: string) {
+    const { id, email } = identity;
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({ where: { id: userId } });
+        if (!user || user.email !== email) throw oauthError("ACCOUNT_LINK_CONFLICT", 409);
+
+        const existing = await tx.oAuthAccount.findUnique({ where: { userId_provider: { userId, provider } } });
+        if (existing?.providerAccountId === id) return user;
+
+        if (existing) throw oauthError("ACCOUNT_LINK_CONFLICT", 409);
+
+        await tx.oAuthAccount.create({ data: { userId, provider, providerAccountId: id } });
+        return user;
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
+        throw oauthError("ACCOUNT_LINK_CONFLICT", 409);
+
+      throw error;
+    }
+  }
+
+  async verifyOAuthLink(currentUser: JwtPayload, password?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: currentUser.sub } });
+    if (!user) throw oauthError("UNAUTHORIZED", 401);
+
+    if (user.passwordHash) {
+      if (!password || !(await argon2.verify(user.passwordHash, password)))
+        throw oauthError("INVALID_CREDENTIALS", 400);
+    } else if (!isRecentOAuthAuthentication(currentUser.oauthAuthenticatedAt, Date.now())) {
+      throw oauthError("OAUTH_REAUTH_REQUIRED", 403);
+    }
   }
 
   async createUser(email: string, nickname: string, password: string) {
