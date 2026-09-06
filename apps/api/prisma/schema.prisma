@@ -55,13 +55,28 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   nickname     String   @unique @db.VarChar(16)
-  passwordHash String   @map("password_hash")
+  passwordHash String?  @map("password_hash")
   createdAt    DateTime @default(now()) @map("created_at")
 
   games Game[]
   refreshSessions RefreshSession[]
+  oauthAccounts OAuthAccount[]
 
   @@map("users")
+}
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@map("oauth_accounts")
 }
 
 model RefreshSession {
@@ -71,6 +86,7 @@ model RefreshSession {
   expiresAt DateTime  @map("expires_at")
   revokedAt DateTime? @map("revoked_at")
   createdAt DateTime  @default(now()) @map("created_at")
+  oauthAuthenticatedAt DateTime? @map("oauth_authenticated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

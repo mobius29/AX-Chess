@@ -121,10 +121,14 @@ export interface ReviewResponse {
   analyzedAt: string;
 }
 
+export type OAuthProvider = "google" | "kakao";
+
 export interface UserDto {
   id: string;
   email: string;
   nickname: string;
+  hasPassword: boolean;
+  connectedProviders: OAuthProvider[];
   stats: {
     total: number;
     wins: number;
@@ -134,6 +138,12 @@ export interface UserDto {
 }
 
 export type ApiErrorCode =
+  | "OAUTH_FAILED"
+  | "OAUTH_DISABLED"
+  | "OAUTH_EMAIL_REQUIRED"
+  | "ACCOUNT_LINK_REQUIRED"
+  | "ACCOUNT_LINK_CONFLICT"
+  | "OAUTH_REAUTH_REQUIRED"
   | "VALIDATION_FAILED"
   | "UNAUTHORIZED"
   | "INVALID_CREDENTIALS"

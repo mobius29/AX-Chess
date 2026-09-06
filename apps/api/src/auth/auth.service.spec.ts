@@ -2,8 +2,8 @@ import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 import argon2 from "argon2";
 
-import { PrismaService } from "../prisma.service";
 import { EnvConfigService } from "../env-config.service";
+import { PrismaService } from "../prisma.service";
 import { AuthService } from "./auth.service";
 
 describe("AuthService", () => {
@@ -43,6 +43,27 @@ describe("AuthService", () => {
     expect(service).toBeDefined();
   });
 
+  it("rejects password login for an OAuth-only account", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "oauth-user", passwordHash: null });
+    await expect(service.signIn("user@example.com", "password")).rejects.toMatchObject({ status: 401 });
+    expect(prisma.refreshSession.create).not.toHaveBeenCalled();
+  });
+
+  it("returns connected providers without leaking password hashes", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user",
+      email: "user@example.com",
+      nickname: "player",
+      passwordHash: "private-hash",
+      oauthAccounts: [{ provider: "google" }],
+    });
+    prisma.game.groupBy.mockResolvedValue([]);
+    const profile = await service.getCurrentUser("user");
+    expect(profile).toMatchObject({ hasPassword: true, connectedProviders: ["google"] });
+    expect(profile).not.toHaveProperty("passwordHash");
+    expect(profile).not.toHaveProperty("oauthAccounts");
+  });
+
   it("rotates a refresh token without extending its absolute expiry", async () => {
     const expiresAt = new Date(Date.now() + 60_000);
     prisma.refreshSession.findUnique.mockResolvedValue({
@@ -69,9 +90,43 @@ describe("AuthService", () => {
         data: expect.objectContaining({ expiresAt, tokenHash: expect.any(String), userId: "user-1" }),
       }),
     );
-    expect(await argon2.verify(prisma.refreshSession.create.mock.calls[0][0].data.tokenHash, tokens.refreshToken.split(".")[1]!)).toBe(true);
+    expect(
+      await argon2.verify(
+        prisma.refreshSession.create.mock.calls[0][0].data.tokenHash,
+        tokens.refreshToken.split(".")[1]!,
+      ),
+    ).toBe(true);
     expect(jwt.sign).toHaveBeenCalledWith({ email: "user@example.com", sub: "user-1" });
   });
+
+  it.each([undefined, 5 * 60_000, 11 * 60_000])(
+    "preserves the original OAuth authentication time through repeated refreshes (age: %s)",
+    async (age) => {
+      const oauthAuthenticatedAt = age === undefined ? undefined : Date.now() - age;
+      const user = { id: "user-1", email: "user@example.com", nickname: "user" };
+      prisma.refreshSession.create.mockImplementation(async ({ data }) => ({ id: "session-2", ...data }));
+      prisma.refreshSession.updateMany.mockResolvedValue({ count: 1 });
+
+      let tokens = await service.issueTokens(user, oauthAuthenticatedAt);
+      for (let rotation = 0; rotation < 2; rotation++) {
+        const stored = prisma.refreshSession.create.mock.calls.at(-1)![0].data;
+        expect(stored.oauthAuthenticatedAt).toEqual(
+          oauthAuthenticatedAt === undefined ? null : new Date(oauthAuthenticatedAt),
+        );
+        prisma.refreshSession.findUnique.mockResolvedValue({ ...stored, id: "session-2", revokedAt: null, user });
+        // oxlint-disable-next-line no-await-in-loop -- Each rotation consumes the previous refresh token.
+        tokens = await service.refresh(tokens.refreshToken);
+        expect(jwt.sign).toHaveBeenLastCalledWith({
+          sub: user.id,
+          email: user.email,
+          ...(oauthAuthenticatedAt === undefined ? {} : { oauthAuthenticatedAt }),
+        });
+      }
+      expect(prisma.refreshSession.create.mock.calls.at(-1)![0].data.oauthAuthenticatedAt).toEqual(
+        oauthAuthenticatedAt === undefined ? null : new Date(oauthAuthenticatedAt),
+      );
+    },
+  );
 
   it("rejects a refresh-token replay when the session was already revoked", async () => {
     prisma.refreshSession.findUnique.mockResolvedValue({
@@ -102,5 +157,4 @@ describe("AuthService", () => {
       }),
     );
   });
-
 });
