@@ -12,7 +12,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-6 px-6 py-7">
           <BrandLink href="/" />
           <nav aria-label="정책 문서" className="flex flex-wrap gap-5 text-sm">
-            <Link className="underline underline-offset-4" href="/terms">
+            <Link className="underline underline-offset-4" href="/terms" prefetch={false}>
               약관 및 정책 전체 보기
             </Link>
           </nav>

@@ -66,7 +66,7 @@ export default function TermsPage() {
         <h2>5. 개인정보와 대국 기록</h2>
         <p>
           개인정보의 처리에 관한 사항은{" "}
-          <Link className="underline underline-offset-4" href="/terms/privacy">
+          <Link className="underline underline-offset-4" href="/terms/privacy" prefetch={false}>
             개인정보처리방침
           </Link>
           에서 별도로 안내합니다. 대국 기록과 분석 결과는 서비스 제공 및 이용자의 복기를 위해 계정에 연결됩니다.

@@ -48,8 +48,7 @@ export class AuthService {
     });
 
     const stats = grouped.reduce(
-      (acc, { result, _count }) => {
-        const count = _count._all;
+      (acc, { result, _count: { _all: count } }) => {
         acc.total += count;
         if (result === "win") acc.wins += count;
         if (result === "loss") acc.losses += count;
@@ -143,15 +142,13 @@ export class AuthService {
         data: { email, nickname, passwordHash: await argon2.hash(password) },
       });
     } catch (error) {
-      // simulta
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         const existing = await this.prisma.user.findFirst({
           where: { OR: [{ email }, { nickname }] },
           select: { email: true, nickname: true },
         });
 
-        if (existing?.email === email) throw new EmailTakenException();
-        if (existing?.nickname === nickname) throw new NicknameTakenException();
+        if (existing?.email === email || existing?.nickname === nickname) throw new EmailTakenException();
       }
 
       throw error;

@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   description: "AX Chess의 서비스 이용약관과 개인정보처리방침을 확인하세요.",
 };
 
-// 새 문서는 terms/<slug>/page.tsx를 만들고 이 목록에 추가합니다.
 const documents = [
   {
     href: "/terms/service",
@@ -28,7 +27,7 @@ export default function TermsPage() {
       <p>AX Chess를 이용하기 전에 필요한 약관과 개인정보 보호 정책을 확인하세요.</p>
       <nav aria-label="약관 목록" className="border-hairline divide-hairline divide-y border-y">
         {documents.map(({ href, title, description }) => (
-          <Link key={href} href={href} className="hover:bg-surface-soft block py-6">
+          <Link key={href} href={href} prefetch={false} className="hover:bg-surface-soft block py-6">
             <span className="flex items-center justify-between gap-4 text-lg font-semibold">
               {title}
               <span aria-hidden="true">→</span>
