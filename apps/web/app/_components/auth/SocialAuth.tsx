@@ -2,10 +2,25 @@
 
 import type { OAuthProvider, UserDto } from "@ax-chess/shared";
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 import { FormField } from "@/app/_components/ui/Form";
+import { googleButtonFont } from "@/app/fonts";
+
+// Google light theme: https://developers.google.com/identity/branding-guidelines
+const googleClasses = `${googleButtonFont.className} flex min-h-12 w-full items-center justify-center gap-2.5 rounded border border-[#747775] bg-white px-3 text-sm leading-5 font-medium tracking-[0.25px] text-[#1F1F1F] hover:bg-[#F8FAFF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F1F1F]`;
+const googleIcon = (
+  <Image
+    src="/brand/google-g.png"
+    alt=""
+    width={20}
+    height={20}
+    className="size-5 shrink-0 object-contain"
+    unoptimized
+  />
+);
 
 const names: Record<OAuthProvider, string> = { google: "Google", kakao: "카카오" };
 const messages: Record<string, string> = {
@@ -52,14 +67,23 @@ export function SocialAuth({ user }: { user?: UserDto }) {
       {user && providers.length > 0 && <h2 className="text-ink text-sm font-semibold">소셜 계정 연결</h2>}
       {providers.map((provider) => {
         const connected = user?.connectedProviders.includes(provider);
-        const classes = `flex min-h-12 w-full items-center justify-center rounded-sm border px-4 text-[15px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 ${provider === "kakao" ? "border-[#FEE500] bg-[#FEE500] text-black/85" : "border-[#747775] bg-white text-[#1F1F1F]"}`;
+        const classes =
+          provider === "google"
+            ? googleClasses
+            : "flex min-h-12 w-full items-center justify-center rounded-sm border border-[#FEE500] bg-[#FEE500] px-4 text-[15px] font-semibold text-black/85 focus-visible:outline-2 focus-visible:outline-offset-2";
         if (user && connected)
           return (
             <p key={provider} className="text-muted text-sm">
               {names[provider]} 연결됨
               {!user.hasPassword && (
-                <a className="text-primary ml-3 underline focus-visible:outline-2" href={`/api/auth/oauth/${provider}`}>
-                  {names[provider]}로 다시 인증하기
+                <a
+                  className={
+                    provider === "google" ? `${classes} mt-3` : "text-primary ml-3 underline focus-visible:outline-2"
+                  }
+                  href={`/api/auth/oauth/${provider}`}
+                >
+                  {provider === "google" && googleIcon}
+                  {provider === "google" ? "Google 계정으로 로그인" : `${names[provider]}로 다시 인증하기`}
                 </a>
               )}
             </p>
@@ -67,11 +91,13 @@ export function SocialAuth({ user }: { user?: UserDto }) {
         if (!user)
           return (
             <a className={classes} href={`/api/auth/oauth/${provider}`} key={provider}>
-              {names[provider]}로 계속하기
+              {provider === "google" && googleIcon}
+              {provider === "google" ? "Google 계정으로 계속" : `${names[provider]}로 계속하기`}
             </a>
           );
         return (
           <form action={`/api/auth/oauth/${provider}/link`} className="space-y-3" key={provider} method="post">
+            {provider === "google" && <p className="text-muted text-sm">Google 계정을 연결하려면 계속하세요.</p>}
             {user.hasPassword && (
               <FormField
                 autoComplete="current-password"
@@ -84,7 +110,8 @@ export function SocialAuth({ user }: { user?: UserDto }) {
               />
             )}
             <button className={`${classes} cursor-pointer`} type="submit">
-              {names[provider]} 계정 연결하기
+              {provider === "google" && googleIcon}
+              {provider === "google" ? "Google 계정으로 계속" : `${names[provider]} 계정 연결하기`}
             </button>
           </form>
         );
