@@ -27,7 +27,7 @@ const messages: Record<string, string> = {
   OAUTH_SIGNUP_EXPIRED: "소셜 인증이 만료되었습니다. 다시 로그인해 주세요.",
   OAUTH_FAILED: "소셜 로그인에 실패했습니다. 다시 시도해 주세요.",
   OAUTH_DISABLED: "현재 이 소셜 로그인을 사용할 수 없습니다.",
-  OAUTH_EMAIL_REQUIRED: "소셜 계정의 인증된 이메일이 필요합니다. 이메일로 가입하거나 로그인해 주세요.",
+  OAUTH_EMAIL_REQUIRED: "인증된 이메일이 있는 Google 계정으로 다시 시도해 주세요.",
   ACCOUNT_LINK_REQUIRED: "기존 로그인 방법으로 로그인한 후 프로필에서 소셜 계정을 연결해 주세요.",
   ACCOUNT_LINK_CONFLICT: "연결할 수 없는 계정입니다. 기존 계정과 같은 이메일의 소셜 계정을 선택해 주세요.",
   OAUTH_REAUTH_REQUIRED: "기존 소셜 계정으로 다시 로그인한 후 10분 이내에 프로필에서 연결해 주세요.",
@@ -65,57 +65,59 @@ export function SocialAuth({ user }: { user?: UserDto }) {
         <OAuthNotice />
       </Suspense>
       {user && providers.length > 0 && <h2 className="text-ink text-sm font-semibold">소셜 계정 연결</h2>}
-      {providers.map((provider) => {
-        const connected = user?.connectedProviders.includes(provider);
-        const classes =
-          provider === "google"
-            ? googleClasses
-            : "flex min-h-12 w-full items-center justify-center rounded-sm border border-[#FEE500] bg-[#FEE500] px-4 text-[15px] font-semibold text-black/85 focus-visible:outline-2 focus-visible:outline-offset-2";
-        if (user && connected)
+      {providers
+        .filter((provider) => user || provider === "google")
+        .map((provider) => {
+          const connected = user?.connectedProviders.includes(provider);
+          const classes =
+            provider === "google"
+              ? googleClasses
+              : "flex min-h-12 w-full items-center justify-center rounded-sm border border-[#FEE500] bg-[#FEE500] px-4 text-[15px] font-semibold text-black/85 focus-visible:outline-2 focus-visible:outline-offset-2";
+          if (user && connected)
+            return (
+              <p key={provider} className="text-muted text-sm">
+                {names[provider]} 연결됨
+                {!user.hasPassword && (
+                  <a
+                    className={
+                      provider === "google" ? `${classes} mt-3` : "text-primary ml-3 underline focus-visible:outline-2"
+                    }
+                    href={`/api/auth/oauth/${provider}`}
+                  >
+                    {provider === "google" && googleIcon}
+                    {provider === "google" ? "Google 계정으로 로그인" : `${names[provider]}로 다시 인증하기`}
+                  </a>
+                )}
+              </p>
+            );
+          if (!user)
+            return (
+              <a className={classes} href={`/api/auth/oauth/${provider}`} key={provider}>
+                {provider === "google" && googleIcon}
+                {provider === "google" ? "Google 계정으로 계속" : `${names[provider]}로 계속하기`}
+              </a>
+            );
           return (
-            <p key={provider} className="text-muted text-sm">
-              {names[provider]} 연결됨
-              {!user.hasPassword && (
-                <a
-                  className={
-                    provider === "google" ? `${classes} mt-3` : "text-primary ml-3 underline focus-visible:outline-2"
-                  }
-                  href={`/api/auth/oauth/${provider}`}
-                >
-                  {provider === "google" && googleIcon}
-                  {provider === "google" ? "Google 계정으로 로그인" : `${names[provider]}로 다시 인증하기`}
-                </a>
+            <form action={`/api/auth/oauth/${provider}/link`} className="space-y-3" key={provider} method="post">
+              {provider === "google" && <p className="text-muted text-sm">Google 계정을 연결하려면 계속하세요.</p>}
+              {user.hasPassword && (
+                <FormField
+                  autoComplete="current-password"
+                  id={`${provider}-password`}
+                  label={`${names[provider]} 연결을 위한 현재 비밀번호`}
+                  maxLength={1024}
+                  name="password"
+                  required
+                  type="password"
+                />
               )}
-            </p>
+              <button className={`${classes} cursor-pointer`} type="submit">
+                {provider === "google" && googleIcon}
+                {provider === "google" ? "Google 계정으로 계속" : `${names[provider]} 계정 연결하기`}
+              </button>
+            </form>
           );
-        if (!user)
-          return (
-            <a className={classes} href={`/api/auth/oauth/${provider}`} key={provider}>
-              {provider === "google" && googleIcon}
-              {provider === "google" ? "Google 계정으로 계속" : `${names[provider]}로 계속하기`}
-            </a>
-          );
-        return (
-          <form action={`/api/auth/oauth/${provider}/link`} className="space-y-3" key={provider} method="post">
-            {provider === "google" && <p className="text-muted text-sm">Google 계정을 연결하려면 계속하세요.</p>}
-            {user.hasPassword && (
-              <FormField
-                autoComplete="current-password"
-                id={`${provider}-password`}
-                label={`${names[provider]} 연결을 위한 현재 비밀번호`}
-                maxLength={1024}
-                name="password"
-                required
-                type="password"
-              />
-            )}
-            <button className={`${classes} cursor-pointer`} type="submit">
-              {provider === "google" && googleIcon}
-              {provider === "google" ? "Google 계정으로 계속" : `${names[provider]} 계정 연결하기`}
-            </button>
-          </form>
-        );
-      })}
+        })}
     </div>
   );
 }
