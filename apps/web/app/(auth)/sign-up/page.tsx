@@ -1,22 +1,25 @@
 "use client";
 
+/*
 import type { SignUpRequest } from "@ax-chess/shared";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
+*/
 
 import { AuthDivider, AuthPanel } from "@/app/_components/auth";
 import { SocialAuth } from "@/app/_components/auth/SocialAuth";
 import { BulletList } from "@/app/_components/ui/BulletList";
-import { Button } from "@/app/_components/ui/Button";
-import { Form, FormField } from "@/app/_components/ui/Form";
+// import { Button } from "@/app/_components/ui/Button";
+// import { Form, FormField } from "@/app/_components/ui/Form";
 import { Link } from "@/app/_components/ui/Link";
-import { Caption } from "@/app/_components/ui/Typography";
-import { apiRequest } from "@/app/_lib/api/apiRequest";
+// import { Caption } from "@/app/_components/ui/Typography";
+// import { apiRequest } from "@/app/_lib/api/apiRequest";
 
 const BULLETS = ["중단한 대국 이어하기", "종료된 대국 복기 · 엔진 분석", "실착수와 정확도 추적"];
 
 const SignUpPage = () => {
+  /*
   const router = useRouter();
   const signUp = useMutation({
     mutationFn: (request: SignUpRequest) => apiRequest("post", "auth/signup", { json: request }),
@@ -30,6 +33,7 @@ const SignUpPage = () => {
     const values = Object.fromEntries(new FormData(e.currentTarget)) as unknown as SignUpRequest;
     signUp.mutate(values);
   };
+  */
 
   return (
     <div className="flex w-full">
@@ -37,9 +41,10 @@ const SignUpPage = () => {
         <section className="w-full max-w-[384px]">
           <header className="mb-7 flex flex-col gap-2">
             <h1 className="text-title-2 text-ink font-semibold">첫 판까지 30초.</h1>
-            <p className="text-body-3 text-muted">이메일로 가입하고 첫 대국을 시작하세요.</p>
+            <p className="text-body-3 text-muted">Google 계정으로 가입하고 첫 대국을 시작하세요.</p>
           </header>
 
+          {/*
           <Form aria-busy={signUp.isPending} onSubmit={handleSubmit}>
             <FormField
               autoComplete="email"
@@ -76,6 +81,7 @@ const SignUpPage = () => {
               {signUp.isPending ? "가입 중..." : "가입하고 시작하기"}
             </Button>
           </Form>
+          */}
           <SocialAuth />
 
           <div className="mt-7 flex flex-col gap-4">
