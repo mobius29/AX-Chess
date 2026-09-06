@@ -484,11 +484,33 @@ describe("OAuthService", () => {
       expect(prisma.user.create).not.toHaveBeenCalled();
     });
 
-    it("accepts a valid token and sends the PKCE verifier", async () => {
+    it("requires a chosen nickname before creating a Google account, then logs returning users in directly", async () => {
       exchange.mockResolvedValueOnce({ tokens: { id_token: sign({}) } });
       const ticket = await signupTicket("google");
       expect(new JwtService().decode(ticket).identity.id).toBe("google-sub");
       expect(exchange).toHaveBeenLastCalledWith({ code: input.code, codeVerifier: input.codeVerifier });
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(auth.issueTokens).not.toHaveBeenCalled();
+
+      const registeredUser = { ...user, nickname: "체스_왕" };
+      prisma.user.create.mockResolvedValueOnce(registeredUser);
+      await service.completeSignup({ signupTicket: ticket, nickname: registeredUser.nickname });
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: {
+          email: user.email,
+          nickname: registeredUser.nickname,
+          oauthAccounts: { create: { provider: "google", providerAccountId: "google-sub" } },
+        },
+      });
+      expect(auth.issueTokens).toHaveBeenCalledWith(registeredUser, expect.any(Number));
+
+      prisma.oAuthAccount.findUnique.mockResolvedValueOnce({ user: registeredUser });
+      exchange.mockResolvedValueOnce({ tokens: { id_token: sign({}) } });
+      const returning = await service.complete("google", input);
+      expect(returning).toMatchObject({ accessToken: "app-token", user: { nickname: registeredUser.nickname } });
+      expect(returning).not.toHaveProperty("signupTicket");
+      expect(prisma.user.create).toHaveBeenCalledTimes(1);
+      expect(auth.issueTokens).toHaveBeenCalledTimes(2);
     });
   });
 

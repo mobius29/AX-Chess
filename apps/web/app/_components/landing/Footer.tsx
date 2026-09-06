@@ -29,6 +29,7 @@ const Footer = () => (
                 <Link
                   className="text-body-3 text-on-dark-soft underline underline-offset-4"
                   href={POLICY_LINKS[link]}
+                  prefetch={false}
                   key={link}
                 >
                   {link}

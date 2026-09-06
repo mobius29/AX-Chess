@@ -13,10 +13,10 @@ const AuthLayout = async ({ children }: { children: ReactNode }) => {
     <>
       <main className="bg-canvas flex flex-1">{children}</main>
       <footer className="bg-canvas text-muted flex flex-wrap justify-center gap-5 px-6 py-6 text-sm">
-        <Link className="underline underline-offset-4" href="/terms/service">
+        <Link className="underline underline-offset-4" href="/terms/service" prefetch={false}>
           서비스 이용약관
         </Link>
-        <Link className="underline underline-offset-4" href="/terms/privacy">
+        <Link className="underline underline-offset-4" href="/terms/privacy" prefetch={false}>
           개인정보처리방침
         </Link>
       </footer>
