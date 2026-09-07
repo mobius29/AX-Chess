@@ -30,21 +30,21 @@
 
 `:provider`는 google 또는 kakao이다.
 
-| 메서드 | 경로                               | 동작                                          |
-| ------ | ---------------------------------- | --------------------------------------------- |
-| GET    | /api/auth/oauth/providers          | 활성 공급자 목록; 설정 전에는 빈 목록         |
-| GET    | /api/auth/oauth/:provider          | state 쿠키 설정 후 공급자로 이동              |
-| GET    | /api/auth/oauth/:provider/callback | state 검증 후 로그인/연결 완료                |
-| POST   | /api/auth/oauth/:provider/link     | 프로필의 명시적 연결 시작; 동일 origin 필수   |
-| GET    | /auth/oauth/providers              | BFF 전용 공급자 목록                          |
-| POST   | /auth/oauth/:provider/start        | BFF 전용 인가 URL 생성                        |
-| POST   | /auth/oauth/:provider/link/start   | BFF + 사용자 JWT; 재인증 후 연결 티켓 생성    |
+| 메서드 | 경로                               | 동작                                           |
+| ------ | ---------------------------------- | ---------------------------------------------- |
+| GET    | /api/auth/oauth/providers          | 활성 공급자 목록; 설정 전에는 빈 목록          |
+| GET    | /api/auth/oauth/:provider          | state 쿠키 설정 후 공급자로 이동               |
+| GET    | /api/auth/oauth/:provider/callback | state 검증 후 로그인/연결 완료                 |
+| POST   | /api/auth/oauth/:provider/link     | 프로필의 명시적 연결 시작; 동일 origin 필수    |
+| GET    | /auth/oauth/providers              | BFF 전용 공급자 목록                           |
+| POST   | /auth/oauth/:provider/start        | BFF 전용 인가 URL 생성                         |
+| POST   | /auth/oauth/:provider/link/start   | BFF + 사용자 JWT; 재인증 후 연결 티켓 생성     |
 | POST   | /auth/oauth/:provider/callback     | 기존 회원 토큰 발급 / 신규 회원 가입 티켓 발급 |
 | POST   | /auth/nickname/check               | 공통 닉네임 형식·중복 확인                     |
-| POST   | /api/auth/oauth/signup             | 동일 origin·가입 쿠키 확인 후 가입 완료       |
+| POST   | /api/auth/oauth/signup             | 동일 origin·가입 쿠키 확인 후 가입 완료        |
 | POST   | /auth/oauth/signup                 | BFF 전용 가입 티켓 검증·사용자 생성·토큰 발급  |
-| POST   | /auth/oauth/:provider/link         | BFF + 사용자 JWT; 티켓 검증 및 연결           |
-| GET    | /auth/me                           | 기존 프로필 + hasPassword, connectedProviders |
+| POST   | /auth/oauth/:provider/link         | BFF + 사용자 JWT; 티켓 검증 및 연결            |
+| GET    | /auth/me                           | 기존 프로필 + hasPassword, connectedProviders  |
 
 로그인 내부 응답은 기존 `accessToken`, `accessExpiresAt`, `refreshToken`, `refreshExpiresAt`, `user` 형식이다. 브라우저에는 토큰 본문 대신 HTTP-only 쿠키만 전달한다. 연결 성공은 `{ linked: true }`이며 새 로그인 세션을 발급하지 않는다.
 
