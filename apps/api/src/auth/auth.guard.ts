@@ -2,11 +2,15 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { JwtService } from "@nestjs/jwt";
 import { Request } from "express";
 
+import { PrismaService } from "../prisma.service";
 import { JwtPayload } from "./auth.decorator";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   private unauthorized() {
     return new UnauthorizedException({ code: "UNAUTHORIZED", message: "인증이 필요합니다." });
@@ -23,6 +27,10 @@ export class AuthGuard implements CanActivate {
     } catch {
       throw this.unauthorized();
     }
+    const userId = request["user"].sub;
+    if (typeof userId !== "string" || !userId) throw this.unauthorized();
+    if (!(await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } })))
+      throw this.unauthorized();
     return true;
   }
 

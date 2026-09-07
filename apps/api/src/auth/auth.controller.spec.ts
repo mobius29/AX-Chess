@@ -1,6 +1,7 @@
 import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 
+import { PrismaService } from "../prisma.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 
@@ -13,6 +14,7 @@ describe("AuthController", () => {
     const module = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
+        { provide: PrismaService, useValue: { user: { findUnique: jest.fn().mockResolvedValue({ id: "user" }) } } },
         {
           provide: AuthService,
           useValue: {

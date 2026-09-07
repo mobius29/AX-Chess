@@ -12,13 +12,13 @@ describe("AuthService", () => {
     $transaction: jest.Mock;
     game: { groupBy: jest.Mock };
     refreshSession: { create: jest.Mock; findUnique: jest.Mock; updateMany: jest.Mock };
-    user: { create: jest.Mock; findUnique: jest.Mock };
+    user: { create: jest.Mock; findUnique: jest.Mock; deleteMany: jest.Mock };
   };
   let jwt: { decode: jest.Mock; sign: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
-      user: { findUnique: jest.fn(), create: jest.fn() },
+      user: { findUnique: jest.fn(), create: jest.fn(), deleteMany: jest.fn().mockResolvedValue({ count: 1 }) },
       game: { groupBy: jest.fn() },
       refreshSession: { create: jest.fn(), findUnique: jest.fn(), updateMany: jest.fn() },
       $transaction: jest.fn(),
@@ -37,6 +37,72 @@ describe("AuthService", () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+  });
+
+  it("deletes only the authenticated account after password verification", async () => {
+    prisma.user.findUnique.mockResolvedValue({ passwordHash: await argon2.hash("correct") });
+    await service.deleteAccount({ sub: "user-1", email: "user@example.com" }, "correct");
+    expect(prisma.user.deleteMany).toHaveBeenCalledWith({ where: { id: "user-1" } });
+  });
+
+  it.each([undefined, "wrong"])("keeps the account for an invalid password: %s", async (password) => {
+    prisma.user.findUnique.mockResolvedValue({ passwordHash: await argon2.hash("correct") });
+    await expect(service.deleteAccount({ sub: "user-1", email: "user@example.com" }, password)).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(prisma.user.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it.each([0, 600_000])("accepts recent OAuth authentication age: %s", async (age) => {
+    const now = 1_800_000_000_000;
+    const clock = jest.spyOn(Date, "now").mockReturnValue(now);
+    prisma.user.findUnique.mockResolvedValue({ passwordHash: null });
+    try {
+      await expect(
+        service.deleteAccount({ sub: "user-1", email: "user@example.com", oauthAuthenticatedAt: now - age }),
+      ).resolves.toBeUndefined();
+      expect(prisma.user.deleteMany).toHaveBeenCalledTimes(1);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it.each([600_001, -1, undefined])("rejects stale or invalid OAuth authentication age: %s", async (age) => {
+    const now = 1_800_000_000_000;
+    const clock = jest.spyOn(Date, "now").mockReturnValue(now);
+    prisma.user.findUnique.mockResolvedValue({ passwordHash: null });
+    try {
+      await expect(
+        service.deleteAccount({
+          sub: "user-1",
+          email: "user@example.com",
+          oauthAuthenticatedAt: age === undefined ? undefined : now - age,
+        }),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(prisma.user.deleteMany).not.toHaveBeenCalled();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it("rejects deleted accounts and a concurrent duplicate deletion", async () => {
+    const user = { sub: "user-1", email: "user@example.com", oauthAuthenticatedAt: Date.now() };
+    prisma.user.findUnique.mockResolvedValue(null);
+    await expect(service.deleteAccount(user)).rejects.toMatchObject({ status: 401 });
+    expect(prisma.user.deleteMany).not.toHaveBeenCalled();
+    prisma.user.findUnique.mockResolvedValue({ passwordHash: null });
+    prisma.user.deleteMany.mockResolvedValue({ count: 0 });
+    await expect(service.deleteAccount(user)).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("does not hide a deletion failure or refresh a deleted session", async () => {
+    prisma.user.findUnique.mockResolvedValue({ passwordHash: null });
+    prisma.user.deleteMany.mockRejectedValue(new Error("database unavailable"));
+    await expect(
+      service.deleteAccount({ sub: "user-1", email: "user@example.com", oauthAuthenticatedAt: Date.now() }),
+    ).rejects.toThrow("database unavailable");
+    prisma.refreshSession.findUnique.mockResolvedValue(null);
+    await expect(service.refresh("deleted.secret")).rejects.toMatchObject({ status: 401 });
   });
 
   it("should be defined", () => {

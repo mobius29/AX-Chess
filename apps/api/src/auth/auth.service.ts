@@ -123,7 +123,7 @@ export class AuthService {
     }
   }
 
-  async verifyOAuthLink(currentUser: JwtPayload, password?: string) {
+  async verifyAccountOwnership(currentUser: JwtPayload, password?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: currentUser.sub } });
     if (!user) throw oauthError("UNAUTHORIZED", 401);
 
@@ -133,6 +133,12 @@ export class AuthService {
     } else if (!isRecentOAuthAuthentication(currentUser.oauthAuthenticatedAt, Date.now())) {
       throw oauthError("OAUTH_REAUTH_REQUIRED", 403);
     }
+  }
+
+  async deleteAccount(currentUser: JwtPayload, password?: string) {
+    await this.verifyAccountOwnership(currentUser, password);
+    const deleted = await this.prisma.user.deleteMany({ where: { id: currentUser.sub } });
+    if (deleted.count !== 1) throw this.unauthorized();
   }
 
   async createUser(email: string, nickname: string, password: string) {

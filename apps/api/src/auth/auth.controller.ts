@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -14,6 +15,7 @@ import { CurrentUser } from "./auth.decorator";
 import type { JwtPayload } from "./auth.decorator";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
+import { DeleteAccountDto } from "./dtos/delete-account.dto";
 import { SignInRequestDTO } from "./dtos/login.dto";
 import { NicknameDto } from "./dtos/nickname.dto";
 import { SignUpRequestDTO } from "./dtos/sign-up.dto";
@@ -21,6 +23,13 @@ import { SignUpRequestDTO } from "./dtos/sign-up.dto";
 @Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
+  @Delete("me")
+  async deleteAccount(@CurrentUser() user: JwtPayload, @Body() body: DeleteAccountDto) {
+    await this.authService.deleteAccount(user, body.password);
+  }
 
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
