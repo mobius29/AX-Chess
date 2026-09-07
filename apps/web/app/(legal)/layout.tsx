@@ -19,14 +19,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main id="main-content" className="mx-auto max-w-3xl px-6 py-12 md:py-20">
-        <p className="text-muted mb-4 text-sm">정책 문서 · 초안 작성일 2026년 9월 6일</p>
-        <aside
-          aria-label="문서 상태"
-          className="border-hairline bg-surface-soft mb-10 rounded-sm border p-5 text-sm leading-7"
-        >
-          <strong className="block">운영 정보 확인 중인 초안입니다.</strong>
-          운영자·문의처, 보유 기간, 처리 위탁·국외 이전 정보와 시행일을 확정한 뒤 정식 문서로 적용합니다.
-        </aside>
+        <p className="text-muted mb-4 text-sm">정책 문서 · 최종 수정일 2026년 9월 7일</p>
         <article className="space-y-10 text-base leading-8 break-keep [&_h1]:text-3xl [&_h1]:font-semibold [&_h1]:tracking-tight [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:pl-1 [&_p+p]:mt-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
           {children}
         </article>
