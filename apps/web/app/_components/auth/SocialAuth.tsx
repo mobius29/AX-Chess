@@ -37,6 +37,8 @@ const messages: Record<string, string> = {
 
 function OAuthNotice() {
   const params = useSearchParams();
+  if (params.get("withdrawn") === "1")
+    return <output>회원탈퇴가 완료되었습니다. 계정과 대국 기록이 삭제되었습니다.</output>;
   const error = params.get("error");
   if (error && Object.hasOwn(messages, error))
     return (

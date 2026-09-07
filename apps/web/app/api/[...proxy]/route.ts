@@ -21,6 +21,13 @@ const proxyRequest = async (request: Request, { params }: Context) => {
   if (isOAuthProxyPath(proxy)) return new NextResponse(null, { status: 404 });
   const path = proxy.map(encodeURIComponent).join("/");
 
+  if (request.method === "DELETE") {
+    if (path !== "auth/me") return new NextResponse(null, { status: 404 });
+    const origin = new URL(process.env.WEB_URL || request.url).origin;
+    if (request.headers.get("origin") !== origin)
+      return NextResponse.json({ message: "허용되지 않은 요청입니다." }, { status: 403 });
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
@@ -36,7 +43,7 @@ const proxyRequest = async (request: Request, { params }: Context) => {
     method: request.method,
   });
 
-  if (path === "auth/logout") {
+  if (path === "auth/logout" || (path === "auth/me" && request.method === "DELETE" && upstream.status === 204)) {
     const response = new NextResponse(upstream.body, { status: upstream.status });
     deleteSessionCookies(response);
     return response;
@@ -83,3 +90,5 @@ const proxyRequest = async (request: Request, { params }: Context) => {
 
 export const GET = proxyRequest;
 export const POST = proxyRequest;
+
+export const DELETE = proxyRequest;
