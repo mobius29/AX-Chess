@@ -26,14 +26,9 @@ const Nav = () => (
         </nav>
       </div>
 
-      <div className="flex items-center gap-4">
-        <NextLink className="text-body text-body-3 hover:text-primary-active transition-colors" href="/login">
-          로그인
-        </NextLink>
-        <Link href="/sign-up" size="sm" variant="primary">
-          시작하기
-        </Link>
-      </div>
+      <Link href="/login" size="sm" variant="primary">
+        시작하기
+      </Link>
     </div>
   </div>
 );

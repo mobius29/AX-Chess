@@ -9,7 +9,7 @@ const CtaBand = () => (
       </div>
       <Link
         className="bg-canvas text-ink focus-visible:outline-primary inline-flex h-12 shrink-0 items-center justify-center rounded-sm px-[26px] text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
-        href="/sign-up"
+        href="/login"
       >
         무료로 시작하기
       </Link>

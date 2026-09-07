@@ -1,22 +1,6 @@
-"use client";
-
-/*
-import type { LoginRequest } from "@ax-chess/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import type { SubmitEvent } from "react";
-*/
-
-// import { AuthDivider } from "@/app/_components/auth";
 import { AuthPanel } from "@/app/_components/auth";
 import { SocialAuth } from "@/app/_components/auth/SocialAuth";
-// import { Button } from "@/app/_components/ui/Button";
-// import { Form, FormField } from "@/app/_components/ui/Form";
-// import { Link } from "@/app/_components/ui/Link";
 import { MoveListPreview } from "@/app/_components/ui/MoveListPreview";
-// import { Caption } from "@/app/_components/ui/Typography";
-// import { apiRequest } from "@/app/_lib/api/apiRequest";
-// import { currentUserQueryKey } from "@/app/_lib/api/auth";
 
 const MOVE_LIST = [
   { black: "e5", no: 1, white: "e4" },
@@ -29,67 +13,17 @@ const MOVE_LIST = [
 ];
 
 const LoginPage = () => {
-  /*
-  const router = useRouter();
-  const queryClient = useQueryClient();
-
-  const login = useMutation({
-    mutationFn: (req: LoginRequest) => apiRequest("post", "auth/login", { json: req }),
-    onSuccess: () => {
-      queryClient.removeQueries({ queryKey: currentUserQueryKey });
-      router.replace("/");
-    },
-  });
-
-  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (login.isPending) return;
-
-    const values = Object.fromEntries(new FormData(e.currentTarget)) as unknown as LoginRequest;
-    login.mutate(values);
-  };
-  */
-
   return (
     <div className="flex w-full">
       <div className="flex flex-1 items-center justify-center px-6 py-16 md:px-14">
         <section className="w-full max-w-[384px]">
           <header className="mb-7 flex flex-col gap-2">
-            <h1 className="text-title-2 text-ink font-semibold">다시 두었던 것부터.</h1>
-            <p className="text-body-3 text-muted">진행 중이던 대국이 있으면 그대로 이어서 둘 수 있습니다.</p>
+            <h1 className="text-title-2 text-ink font-semibold">로그인 · 회원가입</h1>
+            <p className="text-body-3 text-muted">
+              Google 계정으로 계속하세요. 처음이라면 닉네임 설정 후 가입이 완료됩니다.
+            </p>
           </header>
-
-          {/*
-          <Form aria-busy={login.isPending} onSubmit={handleSubmit}>
-            <FormField
-              autoComplete="email"
-              label="이메일"
-              name="email"
-              placeholder="you@example.com"
-              required
-              type="email"
-            />
-            <FormField autoComplete="current-password" label="비밀번호" name="password" required type="password" />
-            {login.error && (
-              <Caption role="alert" tone="error">
-                {login.error.message}
-              </Caption>
-            )}
-            <Button disabled={login.isPending} type="submit">
-              {login.isPending ? "로그인 중..." : "로그인"}
-            </Button>
-          </Form>
-          */}
           <SocialAuth />
-
-          {/*
-          <div className="mt-7 flex flex-col gap-4">
-            <AuthDivider text="아직 계정이 없나요?" />
-            <Link className="w-full" href="/sign-up" size="sm" variant="secondary">
-              이메일로 가입하기
-            </Link>
-          </div>
-          */}
         </section>
       </div>
 

@@ -24,7 +24,7 @@ const Hero = () => (
       </p>
 
       <div className="flex flex-wrap items-start gap-3">
-        <Link href="/sign-up" variant="primary">
+        <Link href="/login" variant="primary">
           무료로 시작하기
         </Link>
         <Link href="#identity" variant="secondary">
@@ -32,7 +32,7 @@ const Hero = () => (
         </Link>
       </div>
 
-      <p className="text-body-3 text-muted-soft">이메일 가입 · 상대를 기다릴 필요 없이 AI와 바로 시작</p>
+      <p className="text-body-3 text-muted-soft">Google 계정으로 시작 · 상대를 기다릴 필요 없이 AI와 바로 시작</p>
     </div>
 
     <div className="bg-surface-dark w-full max-w-[440px] shrink-0 rounded-2xl p-6">
