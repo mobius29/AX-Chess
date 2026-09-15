@@ -11,6 +11,8 @@ import { Stat } from "@/app/_components/ui/Stat";
 import { Body, Caption, Title } from "@/app/_components/ui/Typography";
 import { currentUserQueryKey, getCurrentUser, logout } from "@/app/_lib/api/auth";
 
+import { DeleteAccount } from "./DeleteAccount";
+
 const ProfilePage = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -93,6 +95,7 @@ const ProfilePage = () => {
               로그아웃
             </Button>
           </div>
+          <DeleteAccount user={user} />
         </section>
       )}
     </>

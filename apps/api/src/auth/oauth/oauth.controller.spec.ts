@@ -5,6 +5,7 @@ import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 
+import { PrismaService } from "../../prisma.service";
 import { AuthController } from "../auth.controller";
 import { AuthService } from "../auth.service";
 import { OAuthBffGuard } from "./oauth-bff.guard";
@@ -20,7 +21,10 @@ describe("OAuth HTTP boundary", () => {
     start: jest.fn().mockResolvedValue({}),
     providers: () => ["google"],
   };
-  const auth = { checkNickname: jest.fn().mockResolvedValue({ available: true }) };
+  const auth = {
+    deleteAccount: jest.fn().mockResolvedValue(undefined),
+    checkNickname: jest.fn().mockResolvedValue({ available: true }),
+  };
   const jwt = new JwtService({ secret: "access-secret" });
   const body = { code: "code", state: "s".repeat(43), codeVerifier: "v".repeat(43) };
 
@@ -28,6 +32,7 @@ describe("OAuth HTTP boundary", () => {
     const module = await Test.createTestingModule({
       controllers: [OAuthController, AuthController],
       providers: [
+        { provide: PrismaService, useValue: { user: { findUnique: jest.fn().mockResolvedValue({ id: "user" }) } } },
         OAuthBffGuard,
         { provide: AuthService, useValue: auth },
         { provide: ConfigService, useValue: new ConfigService({ OAUTH_BFF_SECRET: secret }) },
@@ -43,6 +48,32 @@ describe("OAuth HTTP boundary", () => {
     await app.close();
   });
   afterEach(() => jest.clearAllMocks());
+
+  it("deletes the JWT account and returns an empty response", async () => {
+    const token = jwt.sign({ sub: "current-user", email: "user@example.com" });
+    const response = await request(app.getHttpServer())
+      .delete("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({ password: "secret", userId: "other-user" })
+      .expect(204);
+    expect(response.text).toBe("");
+    expect(auth.deleteAccount).toHaveBeenCalledWith(expect.objectContaining({ sub: "current-user" }), "secret");
+  });
+
+  it.each([null, 123, {}, "x".repeat(1025)])("validates withdrawal passwords: %s", async (password) => {
+    const token = jwt.sign({ sub: "current-user" });
+    await request(app.getHttpServer())
+      .delete("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({ password })
+      .expect(400);
+    expect(auth.deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it("requires authentication for withdrawal", async () => {
+    await request(app.getHttpServer()).delete("/auth/me").send({}).expect(401);
+    expect(auth.deleteAccount).not.toHaveBeenCalled();
+  });
 
   it("rejects direct callback requests without the BFF credential", async () => {
     await request(app.getHttpServer()).post("/auth/oauth/google/callback").send(body).expect(403);

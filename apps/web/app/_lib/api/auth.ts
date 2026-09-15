@@ -14,3 +14,5 @@ export const getCurrentUser = async () => {
 
   return response.json<UserDto>();
 };
+
+export const deleteAccount = (password?: string) => apiRequest("delete", "auth/me", { json: { password } });

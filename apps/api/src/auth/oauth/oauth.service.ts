@@ -100,7 +100,7 @@ export class OAuthService {
   }
 
   private async createLinkTicket(provider: string, state: string, currentUser: JwtPayload, password?: string) {
-    await this.auth.verifyOAuthLink(currentUser, password);
+    await this.auth.verifyAccountOwnership(currentUser, password);
     return this.signTicket("link", { sub: currentUser.sub, provider, state });
   }
 
