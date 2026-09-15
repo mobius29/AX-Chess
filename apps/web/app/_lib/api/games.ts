@@ -13,6 +13,7 @@ import { apiRequest } from "./apiRequest";
 export const activeGameQueryKey = ["activeGame"] as const;
 export const gameQueryKey = (id: string) => ["game", id] as const;
 export const gamesListQueryKey = ["games"] as const;
+export const gamesInfiniteQueryKey = ["games", "infinite"] as const;
 export const reviewQueryKey = (id: string) => ["review", id] as const;
 
 export const getActiveGame = async () => {

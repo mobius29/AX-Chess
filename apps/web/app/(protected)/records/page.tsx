@@ -8,7 +8,7 @@ import { Badge } from "@/app/_components/ui/Badge";
 import { Button } from "@/app/_components/ui/Button";
 import { Body, Caption, Title } from "@/app/_components/ui/Typography";
 import { currentUserQueryKey, getCurrentUser } from "@/app/_lib/api/auth";
-import { gamesListQueryKey, getGames } from "@/app/_lib/api/games";
+import { gamesInfiniteQueryKey, getGames } from "@/app/_lib/api/games";
 
 import GameSummaryCard from "./components/GameSummaryCard";
 
@@ -18,7 +18,7 @@ const RecordsPage = () => {
     getNextPageParam: (lastPage: GameListResponse) => lastPage.nextCursor ?? undefined,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }: { pageParam: string | undefined }) => getGames(pageParam),
-    queryKey: gamesListQueryKey,
+    queryKey: gamesInfiniteQueryKey,
   });
 
   const games = query.data?.pages.flatMap((page) => page.items) ?? [];
