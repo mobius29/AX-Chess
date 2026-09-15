@@ -43,6 +43,7 @@ const AppNav = () => {
                 className={clsx("text-body-3", pathname === href ? "text-ink" : "text-muted")}
                 href={href}
                 key={href}
+                prefetch={false}
               >
                 {label}
               </NextLink>
